@@ -1,0 +1,78 @@
+{
+  "projectType": "infrastructure",
+  "projectName": "Docker PHP with MS SQL Server",
+  "projectDescription": "Docker images based on official PHP images with Microsoft SQL Server Driver pre-installed",
+  "theme": "aspen",
+  "primaryColor": "#244455",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "groups": [
+      {
+        "group": "Overview",
+        "pages": [
+          "introduction",
+          "quickstart"
+        ]
+      },
+      {
+        "group": "Image Variants",
+        "pages": [
+          "images/debian",
+          "images/alpine",
+          "images/swoole"
+        ]
+      },
+      {
+        "group": "Usage",
+        "pages": [
+          "usage/pulling-images",
+          "usage/running-containers",
+          "usage/php-configuration",
+          "usage/mssql-connection"
+        ]
+      },
+      {
+        "group": "Development",
+        "pages": [
+          "development/building-locally",
+          "development/testing",
+          "development/contributing"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/available-tags",
+          "reference/php-extensions",
+          "reference/system-tools"
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Pre-installed Microsoft SQL Server drivers (sqlsrv and pdo_sqlsrv)",
+    "Multiple PHP versions (8.1, 8.2, 8.3, 8.4)",
+    "Alpine and Debian variants for different deployment needs",
+    "FPM and CLI configurations",
+    "Additional PHP extensions (bcmath, ds, exif, gd, intl, opcache, pcntl, redis, zip)",
+    "Optional Swoole support for high-performance applications",
+    "Development tools included (Composer, Node.js, npm, yarn)"
+  ],
+  "publicApiSurface": [
+    "namoshek/php-mssql:8.4-cli",
+    "namoshek/php-mssql:8.4-fpm",
+    "namoshek/php-mssql:8.4-cli-alpine",
+    "namoshek/php-mssql:8.4-fpm-alpine",
+    "namoshek/php-mssql:8.4-cli-alpine-swoole",
+    "namoshek/php-mssql:8.4-fpm-alpine-swoole",
+    "namoshek/php-mssql:8.3-cli",
+    "namoshek/php-mssql:8.3-fpm",
+    "namoshek/php-mssql:8.3-cli-alpine",
+    "namoshek/php-mssql:8.3-fpm-alpine",
+    "namoshek/php-mssql:8.2-cli",
+    "namoshek/php-mssql:8.2-fpm",
+    "namoshek/php-mssql:8.1-cli",
+    "namoshek/php-mssql:8.1-fpm"
+  ]
+}
