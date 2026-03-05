@@ -1,0 +1,175 @@
+---
+title: Building Images Locally
+description: Learn how to build docker-php-mssql images on your local machine for development and testing
+---
+
+## Overview
+
+Building docker-php-mssql images locally is straightforward and allows you to test changes before contributing or customize images for your specific needs.
+
+## Prerequisites
+
+Before building images locally, ensure you have:
+
+- Docker installed and running on your machine
+- Git installed for cloning the repository
+- Sufficient disk space (Docker images can be several hundred MB)
+
+## Building Images
+
+<Steps>
+  <Step title="Clone the repository">
+    First, clone the docker-php-mssql repository to your local machine:
+
+    ```bash
+    git clone https://github.com/namoshek/docker-php-mssql.git
+    cd docker-php-mssql
+    ```
+  </Step>
+
+  <Step title="Choose your target image">
+    The repository is organized by PHP version and type. Available combinations include:
+
+    - **PHP Versions**: 8.1, 8.2, 8.3, 8.4
+    - **Types**: `cli`, `fpm`, `cli-alpine`, `fpm-alpine`, `cli-alpine-swoole`, `fpm-alpine-swoole`
+
+    For example:
+    - `8.2/cli` - PHP 8.2 CLI on Debian
+    - `8.3/cli-alpine` - PHP 8.3 CLI on Alpine Linux
+    - `8.4/fpm-alpine-swoole` - PHP 8.4 FPM on Alpine with Swoole extension
+  </Step>
+
+  <Step title="Build the image">
+    Use the following command pattern to build an image:
+
+    ```bash
+    docker build -t namoshek/php-mssql:<tag> <version>/<type>
+    ```
+
+    **Example: Building PHP 8.2 CLI**
+    ```bash
+    docker build -t namoshek/php-mssql:8.2-cli 8.2/cli
+    ```
+
+    **Example: Building PHP 8.4 FPM Alpine**
+    ```bash
+    docker build -t namoshek/php-mssql:8.4-fpm-alpine 8.4/fpm-alpine
+    ```
+
+    **Example: Building PHP 8.3 CLI Alpine with Swoole**
+    ```bash
+    docker build -t namoshek/php-mssql:8.3-cli-alpine-swoole 8.3/cli-alpine-swoole
+    ```
+  </Step>
+
+  <Step title="Verify the build">
+    Once the build completes, verify the image was created:
+
+    ```bash
+    docker images | grep namoshek/php-mssql
+    ```
+
+    You can also check that the SQL Server extensions are installed:
+
+    ```bash
+    docker run --rm namoshek/php-mssql:8.2-cli php -m | grep sqlsrv
+    ```
+
+    This should display:
+    ```
+    pdo_sqlsrv
+    sqlsrv
+    ```
+  </Step>
+</Steps>
+
+## Build Options
+
+### Custom Tags
+
+You can use any tag name for local development:
+
+```bash
+docker build -t my-custom-php-mssql:test 8.3/cli
+```
+
+### Build Arguments
+
+The Dockerfiles may support build arguments for customization. Check the specific Dockerfile for available options:
+
+```bash
+cat 8.3/cli/Dockerfile | grep ARG
+```
+
+### Multi-platform Builds
+
+For building multi-platform images (e.g., for ARM architectures), use Docker Buildx:
+
+```bash
+# Set up buildx if not already done
+docker buildx create --use
+
+# Build for multiple platforms
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t namoshek/php-mssql:8.3-cli \
+  8.3/cli
+```
+
+<Note>
+  Multi-platform builds may take significantly longer as they build for multiple architectures.
+</Note>
+
+## Troubleshooting
+
+### Build Fails with Network Errors
+
+If the build fails while downloading packages:
+
+1. Check your internet connection
+2. Retry the build - temporary network issues are common
+3. Check if package repositories are accessible
+
+### Insufficient Disk Space
+
+Docker images can be large. To free up space:
+
+```bash
+# Remove unused images
+docker image prune
+
+# Remove all unused containers, networks, and images
+docker system prune -a
+```
+
+### Microsoft ODBC Driver Installation Fails
+
+If the Microsoft ODBC Driver installation fails:
+
+1. Check that the Microsoft repository is accessible
+2. Review the Dockerfile for the correct ODBC driver version
+3. Check Docker logs for specific error messages:
+
+```bash
+docker build --progress=plain -t namoshek/php-mssql:8.2-cli 8.2/cli
+```
+
+### Build Cache Issues
+
+If you suspect cached layers are causing issues, rebuild without cache:
+
+```bash
+docker build --no-cache -t namoshek/php-mssql:8.2-cli 8.2/cli
+```
+
+<Warning>
+  Building without cache will take significantly longer as all layers must be rebuilt.
+</Warning>
+
+## Next Steps
+
+After building your images locally:
+
+- [Test the images](/development/testing) to verify functionality
+- [Contribute](/development/contributing) your changes back to the project
+- Use the images in your local development environment

@@ -1,0 +1,379 @@
+---
+title: Contributing
+description: Guidelines for contributing to the docker-php-mssql project
+---
+
+## Overview
+
+Contributions to docker-php-mssql are welcome and appreciated! Whether you're fixing bugs, adding new PHP versions, improving documentation, or suggesting enhancements, your help makes this project better for everyone.
+
+## License
+
+This project is licensed under the **MIT License**. By contributing, you agree that your contributions will be licensed under the same terms.
+
+<Accordion title="View MIT License">
+  ```
+  MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+  ```
+</Accordion>
+
+The MIT License grants you the freedom to use, modify, and distribute the software with minimal restrictions.
+
+## Ways to Contribute
+
+### Adding New PHP Versions
+
+The most common contribution is adding support for new PHP versions. This is especially valuable when:
+
+- New PHP versions are released
+- Existing PHP versions need updates to newer ODBC drivers
+- Base images are updated (Alpine Linux, Debian versions)
+
+### Bug Fixes
+
+Found a bug? Contributions that fix issues are always welcome:
+
+- Extension installation failures
+- Compatibility issues with SQL Server
+- Build process improvements
+- Documentation corrections
+
+### Documentation Improvements
+
+Help make the documentation clearer and more comprehensive:
+
+- Fix typos or unclear explanations
+- Add examples and use cases
+- Improve troubleshooting guides
+- Translate documentation
+
+### Feature Enhancements
+
+Suggest or implement new features:
+
+- Additional PHP extensions
+- Support for different base images
+- Performance optimizations
+- CI/CD improvements
+
+## Contribution Workflow
+
+<Steps>
+  <Step title="Fork the repository">
+    Create your own fork of the project:
+
+    1. Visit [github.com/namoshek/docker-php-mssql](https://github.com/namoshek/docker-php-mssql)
+    2. Click the "Fork" button in the top right
+    3. Clone your fork locally:
+
+    ```bash
+    git clone https://github.com/YOUR-USERNAME/docker-php-mssql.git
+    cd docker-php-mssql
+    ```
+  </Step>
+
+  <Step title="Create a feature branch">
+    Create a new branch for your changes:
+
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+
+    Use descriptive branch names:
+    - `feature/add-php-8-5` - Adding a new PHP version
+    - `fix/odbc-driver-18-issue` - Fixing a specific bug
+    - `docs/improve-testing-guide` - Documentation improvements
+  </Step>
+
+  <Step title="Make your changes">
+    Implement your changes following the project structure:
+
+    **For new PHP versions:**
+    ```bash
+    # Create directory structure
+    mkdir -p 8.5/cli 8.5/fpm 8.5/cli-alpine 8.5/fpm-alpine
+
+    # Copy and modify Dockerfiles from an existing version
+    cp 8.4/cli/Dockerfile 8.5/cli/Dockerfile
+    # Edit the Dockerfile to use PHP 8.5 base image
+    ```
+
+    **For bug fixes:**
+    - Identify the affected Dockerfile(s)
+    - Make necessary changes
+    - Test the fix locally
+
+    **For documentation:**
+    - Update README.md or relevant docs
+    - Ensure formatting is consistent
+  </Step>
+
+  <Step title="Test your changes">
+    Before submitting, test your changes locally:
+
+    ```bash
+    # Build the image
+    docker build -t test/php-mssql:8.5-cli 8.5/cli
+
+    # Run the test suite
+    # Start SQL Server
+    docker run -d --name mssql-test \
+      -e ACCEPT_EULA=Y \
+      -e MSSQL_PID=Developer \
+      -e SA_PASSWORD='YourStrong@Password123' \
+      -p 1433:1433 \
+      mcr.microsoft.com/mssql/server:2022-latest
+
+    # Wait for SQL Server to be ready
+    sleep 15
+
+    # Run tests
+    docker run --rm --network host \
+      -v $(pwd)/.ci/tests:/work \
+      -e MSSQL_HOST=localhost \
+      -e MSSQL_PORT=1433 \
+      -e MSSQL_DATABASE=master \
+      -e MSSQL_USERNAME=sa \
+      -e MSSQL_PASSWORD='YourStrong@Password123' \
+      test/php-mssql:8.5-cli \
+      php /work/test_connection.php
+
+    # Clean up
+    docker stop mssql-test && docker rm mssql-test
+    ```
+
+    See the [Testing guide](/development/testing) for more details.
+  </Step>
+
+  <Step title="Update CI configuration">
+    If adding new versions, update `.github/workflows/build-and-push.yml`:
+
+    ```yaml
+    # Add jobs for your new version
+    build-8_5-cli:
+      uses: ./.github/workflows/create-and-test-docker-image.yml
+      name: namoshek/php-mssql:8.5-cli
+      secrets: inherit
+      with:
+        source-directory: 8.5/cli
+        image-tag: namoshek/php-mssql:8.5-cli
+
+    build-8_5-fpm:
+      uses: ./.github/workflows/create-and-test-docker-image.yml
+      name: namoshek/php-mssql:8.5-fpm
+      secrets: inherit
+      with:
+        source-directory: 8.5/fpm
+        image-tag: namoshek/php-mssql:8.5-fpm
+    ```
+
+    Follow the existing pattern for all image variants (CLI, FPM, Alpine, Swoole).
+  </Step>
+
+  <Step title="Commit your changes">
+    Make clear, descriptive commits:
+
+    ```bash
+    git add .
+    git commit -m "Add support for PHP 8.5"
+    ```
+
+    Good commit messages:
+    - `Add PHP 8.5 CLI and FPM images`
+    - `Fix ODBC Driver 18 installation on Alpine`
+    - `Update README with PHP 8.5 information`
+    - `Improve error handling in test script`
+
+    Push your changes:
+    ```bash
+    git push origin feature/your-feature-name
+    ```
+  </Step>
+
+  <Step title="Create a Pull Request">
+    1. Go to your fork on GitHub
+    2. Click "Compare & pull request"
+    3. Provide a clear title and description:
+
+    **Good PR title examples:**
+    - "Add support for PHP 8.5"
+    - "Fix ODBC driver installation on Alpine Linux"
+    - "Update documentation for testing procedures"
+
+    **PR description should include:**
+    - What changes were made
+    - Why the changes are needed
+    - How you tested the changes
+    - Any breaking changes or considerations
+
+    4. Submit the pull request
+  </Step>
+
+  <Step title="Respond to feedback">
+    Maintainers may request changes or ask questions:
+
+    - Be responsive and respectful
+    - Make requested changes promptly
+    - Push additional commits to the same branch
+    - Discuss any concerns or questions
+
+    The PR will be updated automatically when you push new commits.
+  </Step>
+</Steps>
+
+## Contribution Guidelines
+
+### Code Style
+
+- Follow the existing Dockerfile structure and patterns
+- Use consistent indentation (tabs or spaces matching the file)
+- Add comments for complex installation steps
+- Keep layers organized and logical
+
+### Documentation
+
+- Update README.md when adding new versions
+- Include version information and supported features
+- Keep the "Available Versions" section up to date
+- Add examples for new functionality
+
+### Testing Requirements
+
+All contributions must:
+
+- Build successfully without errors
+- Pass the connection test script
+- Include both `sqlsrv` and `pdo_sqlsrv` extensions
+- Work with SQL Server 2022 or later
+
+### Commit Messages
+
+Write clear commit messages:
+
+```bash
+# Good
+git commit -m "Add PHP 8.5 support with ODBC Driver 18"
+git commit -m "Fix extension installation on Alpine Linux"
+
+# Not as good
+git commit -m "Update files"
+git commit -m "Fix bug"
+```
+
+## Common Contribution Scenarios
+
+### Adding a New PHP Version
+
+<Steps>
+  <Step title="Create directory structure">
+    ```bash
+    mkdir -p 8.5/{cli,fpm,cli-alpine,fpm-alpine,cli-alpine-swoole,fpm-alpine-swoole}
+    ```
+  </Step>
+
+  <Step title="Copy existing Dockerfiles">
+    ```bash
+    # Copy from most recent version
+    for dir in cli fpm cli-alpine fpm-alpine cli-alpine-swoole fpm-alpine-swoole; do
+      cp 8.4/$dir/Dockerfile 8.5/$dir/
+    done
+    ```
+  </Step>
+
+  <Step title="Update base images">
+    Edit each Dockerfile to use the new PHP version:
+    ```dockerfile
+    FROM php:8.5-cli-alpine
+    # or
+    FROM php:8.5-fpm
+    ```
+  </Step>
+
+  <Step title="Test and verify">
+    Build and test each variant following the testing guide.
+  </Step>
+
+  <Step title="Update documentation and CI">
+    - Add to README.md "Available Versions" section
+    - Update `.github/workflows/build-and-push.yml`
+    - Update documentation if needed
+  </Step>
+</Steps>
+
+### Updating ODBC Driver Version
+
+To update to a newer ODBC driver:
+
+1. Find the Dockerfile(s) to update
+2. Locate the ODBC driver installation section
+3. Update version numbers and package URLs
+4. Test thoroughly - driver changes can break connectivity
+5. Document the change in your PR
+
+### Adding PHP Extensions
+
+To add a new PHP extension to images:
+
+1. Add the installation command to the Dockerfile:
+   ```dockerfile
+   RUN docker-php-ext-install extension_name
+   ```
+2. Test that the extension loads correctly
+3. Document the new extension in README.md
+4. Consider if all image variants should include it
+
+## Getting Help
+
+If you need help with your contribution:
+
+- Open an issue to discuss your idea first
+- Ask questions in your pull request
+- Check existing issues and PRs for similar work
+- Review the existing codebase for patterns to follow
+
+## Recognition
+
+All contributors will be recognized for their contributions. Your GitHub username will appear in the contributors list, and significant contributions may be mentioned in release notes.
+
+## Code of Conduct
+
+While contributing, please:
+
+- Be respectful and professional
+- Welcome newcomers and help them learn
+- Focus on constructive feedback
+- Assume good intentions
+- Keep discussions on topic
+
+## What Happens Next?
+
+After you submit a pull request:
+
+1. **Automated checks** will run (if configured)
+2. **Maintainers will review** your changes
+3. **Feedback may be provided** for improvements
+4. **Once approved**, your changes will be merged
+5. **Images will be built** and published automatically
+6. **Your contribution** will be part of the next release
+
+## Thank You!
+
+Thank you for contributing to docker-php-mssql! Your contributions help developers around the world work with PHP and Microsoft SQL Server more easily.

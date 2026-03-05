@@ -1,0 +1,605 @@
+---
+title: MSSQL Connection
+description: Learn how to connect to Microsoft SQL Server from PHP using sqlsrv and pdo_sqlsrv extensions
+---
+
+The docker-php-mssql images come with both `sqlsrv` and `pdo_sqlsrv` extensions pre-installed, allowing you to connect to Microsoft SQL Server databases using either the native sqlsrv driver or PDO.
+
+## Prerequisites
+
+Before connecting, ensure you have:
+
+- A running SQL Server instance (SQL Server 2017 or later recommended)
+- Database credentials (username and password)
+- Network connectivity between your container and SQL Server
+- Microsoft ODBC Driver 18 (pre-installed in the images)
+
+## Connection Methods
+
+### Using sqlsrv Extension
+
+The sqlsrv extension provides a direct interface to SQL Server:
+
+<Steps>
+  <Step title="Basic Connection">
+    ```php
+    <?php
+    $serverName = "sqlserver,1433"; // host,port format
+    $connectionOptions = [
+        "Database" => "myDatabase",
+        "UID" => "sa",
+        "PWD" => "YourPassword123",
+        "Encrypt" => false,
+    ];
+
+    $conn = sqlsrv_connect($serverName, $connectionOptions);
+
+    if ($conn === false) {
+        die(print_r(sqlsrv_errors(), true));
+    }
+
+    echo "Connected successfully!\n";
+    ```
+  </Step>
+
+  <Step title="Execute Query">
+    ```php
+    <?php
+    $sql = "SELECT TOP 10 * FROM users";
+    $stmt = sqlsrv_query($conn, $sql);
+
+    if ($stmt === false) {
+        die(print_r(sqlsrv_errors(), true));
+    }
+
+    while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+        echo $row['name'] . "\n";
+    }
+
+    sqlsrv_free_stmt($stmt);
+    ```
+  </Step>
+
+  <Step title="Close Connection">
+    ```php
+    <?php
+    sqlsrv_close($conn);
+    ```
+  </Step>
+</Steps>
+
+### Using PDO_SQLSRV Extension
+
+PDO provides a consistent interface across different database systems:
+
+<Steps>
+  <Step title="Basic PDO Connection">
+    ```php
+    <?php
+    $host = "sqlserver";
+    $port = 1433;
+    $database = "myDatabase";
+    $username = "sa";
+    $password = "YourPassword123";
+
+    try {
+        $dsn = "sqlsrv:server={$host},{$port};Database={$database};ConnectionPooling=0;Encrypt=no";
+        $pdo = new PDO($dsn, $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+
+        echo "Connected successfully!\n";
+    } catch (PDOException $e) {
+        die("Connection failed: " . $e->getMessage());
+    }
+    ```
+  </Step>
+
+  <Step title="Execute Query">
+    ```php
+    <?php
+    $sql = "SELECT TOP 10 * FROM users WHERE status = :status";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['status' => 'active']);
+
+    $results = $stmt->fetchAll();
+
+    foreach ($results as $row) {
+        echo $row['name'] . "\n";
+    }
+    ```
+  </Step>
+
+  <Step title="Close Connection">
+    ```php
+    <?php
+    $pdo = null;
+    ```
+  </Step>
+</Steps>
+
+## Connection Options
+
+### SSL/TLS Encryption
+
+<Tabs>
+  <Tab title="sqlsrv">
+    ```php
+    <?php
+    $connectionOptions = [
+        "Database" => "myDatabase",
+        "UID" => "sa",
+        "PWD" => "YourPassword123",
+        "Encrypt" => true,
+        "TrustServerCertificate" => false,
+    ];
+    ```
+  </Tab>
+
+  <Tab title="PDO">
+    ```php
+    <?php
+    $dsn = "sqlsrv:server={$host},{$port};Database={$database};Encrypt=yes;TrustServerCertificate=no";
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  For production environments, always use `Encrypt=true`. Only disable encryption for development or when connecting to SQL Server instances that don't support TLS.
+</Warning>
+
+### Connection Timeout
+
+<Tabs>
+  <Tab title="sqlsrv">
+    ```php
+    <?php
+    $connectionOptions = [
+        "Database" => "myDatabase",
+        "UID" => "sa",
+        "PWD" => "YourPassword123",
+        "LoginTimeout" => 30,
+        "ConnectRetryCount" => 3,
+        "ConnectRetryInterval" => 10,
+    ];
+    ```
+  </Tab>
+
+  <Tab title="PDO">
+    ```php
+    <?php
+    $dsn = "sqlsrv:server={$host},{$port};Database={$database};LoginTimeout=30";
+    ```
+  </Tab>
+</Tabs>
+
+### Connection Pooling
+
+<Tabs>
+  <Tab title="sqlsrv">
+    ```php
+    <?php
+    $connectionOptions = [
+        "Database" => "myDatabase",
+        "UID" => "sa",
+        "PWD" => "YourPassword123",
+        "ConnectionPooling" => true,
+    ];
+    ```
+  </Tab>
+
+  <Tab title="PDO">
+    ```php
+    <?php
+    $dsn = "sqlsrv:server={$host},{$port};Database={$database};ConnectionPooling=1";
+    ```
+  </Tab>
+</Tabs>
+
+## Using Environment Variables
+
+Store connection details in environment variables for better security:
+
+<Steps>
+  <Step title="Set Environment Variables">
+    Create a `.env` file:
+
+    ```env
+    MSSQL_HOST=sqlserver
+    MSSQL_PORT=1433
+    MSSQL_DATABASE=myDatabase
+    MSSQL_USERNAME=sa
+    MSSQL_PASSWORD=YourPassword123
+    ```
+  </Step>
+
+  <Step title="Use in docker-compose.yml">
+    ```yaml
+    services:
+      app:
+        image: namoshek/php-mssql:8.4-cli
+        env_file:
+          - .env
+        volumes:
+          - ./:/app
+    ```
+  </Step>
+
+  <Step title="Access in PHP">
+    ```php
+    <?php
+    $host = getenv('MSSQL_HOST');
+    $port = getenv('MSSQL_PORT');
+    $database = getenv('MSSQL_DATABASE');
+    $username = getenv('MSSQL_USERNAME');
+    $password = getenv('MSSQL_PASSWORD');
+
+    $conn = sqlsrv_connect("{$host},{$port}", [
+        'Database' => $database,
+        'UID' => $username,
+        'PWD' => $password,
+        'Encrypt' => false,
+    ]);
+    ```
+  </Step>
+</Steps>
+
+## Complete Example
+
+Here's a complete, reusable connection example based on the test file:
+
+<Tabs>
+  <Tab title="sqlsrv">
+    ```php
+    <?php
+
+    function connectWithSqlsrv(): ?
+    {
+        $host = getenv('MSSQL_HOST');
+        $port = getenv('MSSQL_PORT');
+
+        $connection = sqlsrv_connect("{$host},{$port}", [
+            'UID' => getenv('MSSQL_USERNAME'),
+            'PWD' => getenv('MSSQL_PASSWORD'),
+            'Database' => getenv('MSSQL_DATABASE'),
+            'Encrypt' => false,
+        ]);
+
+        if ($connection === false) {
+            $errors = sqlsrv_errors();
+            error_log("SQL Server Connection Error: " . json_encode($errors));
+            return null;
+        }
+
+        return $connection;
+    }
+
+    function testConnection($connection): bool
+    {
+        $result = sqlsrv_query($connection, 'SELECT 1');
+
+        if ($result === false) {
+            $errors = sqlsrv_errors();
+            error_log("SQL Server Query Error: " . json_encode($errors));
+            return false;
+        }
+
+        sqlsrv_free_stmt($result);
+        return true;
+    }
+
+    // Usage
+    $conn = connectWithSqlsrv();
+
+    if ($conn && testConnection($conn)) {
+        echo "Connected and tested successfully!\n";
+        
+        // Your application code here
+        
+        sqlsrv_close($conn);
+    } else {
+        die("Failed to connect to SQL Server");
+    }
+    ```
+  </Tab>
+
+  <Tab title="PDO">
+    ```php
+    <?php
+
+    function connectWithPDO(): ?PDO
+    {
+        $host = getenv('MSSQL_HOST');
+        $port = getenv('MSSQL_PORT');
+        $database = getenv('MSSQL_DATABASE');
+        $username = getenv('MSSQL_USERNAME');
+        $password = getenv('MSSQL_PASSWORD');
+
+        try {
+            $dsn = "sqlsrv:server={$host},{$port};Database={$database};ConnectionPooling=0;Encrypt=no";
+            $pdo = new PDO($dsn, $username, $password, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+
+            return $pdo;
+        } catch (PDOException $e) {
+            error_log("SQL Server Connection Error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    function testConnection(PDO $pdo): bool
+    {
+        try {
+            $result = $pdo->query('SELECT 1');
+            return $result !== false;
+        } catch (PDOException $e) {
+            error_log("SQL Server Query Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Usage
+    $pdo = connectWithPDO();
+
+    if ($pdo && testConnection($pdo)) {
+        echo "Connected and tested successfully!\n";
+        
+        // Your application code here
+        
+        $pdo = null; // Close connection
+    } else {
+        die("Failed to connect to SQL Server");
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Docker Compose Setup
+
+Complete docker-compose.yml with PHP and SQL Server:
+
+```yaml
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      SA_PASSWORD: "YourStrong@Password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - app-network
+    healthcheck:
+      test: [
+        "CMD",
+        "/opt/mssql-tools18/bin/sqlcmd",
+        "-S", "localhost",
+        "-U", "sa",
+        "-P", "YourStrong@Password123",
+        "-No",
+        "-Q", "SELECT 1"
+      ]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  php:
+    image: namoshek/php-mssql:8.4-cli
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      MSSQL_HOST: sqlserver
+      MSSQL_PORT: 1433
+      MSSQL_DATABASE: master
+      MSSQL_USERNAME: sa
+      MSSQL_PASSWORD: "YourStrong@Password123"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: php /app/test_connection.php
+
+volumes:
+  sqlserver-data:
+
+networks:
+  app-network:
+    driver: bridge
+```
+
+## Testing the Connection
+
+Create a simple test script:
+
+```php test_connection.php
+<?php
+
+echo "PHP Version: " . phpversion() . "\n";
+echo "sqlsrv version: " . phpversion('sqlsrv') . "\n";
+echo "pdo_sqlsrv version: " . phpversion('pdo_sqlsrv') . "\n\n";
+
+echo "Environment Variables:\n";
+echo "MSSQL_HOST: " . getenv('MSSQL_HOST') . "\n";
+echo "MSSQL_PORT: " . getenv('MSSQL_PORT') . "\n";
+echo "MSSQL_DATABASE: " . getenv('MSSQL_DATABASE') . "\n\n";
+
+// Test sqlsrv
+echo "Testing sqlsrv extension...\n";
+$conn = sqlsrv_connect(
+    getenv('MSSQL_HOST') . "," . getenv('MSSQL_PORT'),
+    [
+        'UID' => getenv('MSSQL_USERNAME'),
+        'PWD' => getenv('MSSQL_PASSWORD'),
+        'Database' => getenv('MSSQL_DATABASE'),
+        'Encrypt' => false,
+    ]
+);
+
+if ($conn === false) {
+    echo "❌ sqlsrv connection failed\n";
+    print_r(sqlsrv_errors());
+} else {
+    echo "✓ sqlsrv connection successful\n";
+    sqlsrv_close($conn);
+}
+
+// Test PDO
+echo "\nTesting pdo_sqlsrv extension...\n";
+try {
+    $dsn = sprintf(
+        "sqlsrv:server=%s,%s;Database=%s;ConnectionPooling=0;Encrypt=no",
+        getenv('MSSQL_HOST'),
+        getenv('MSSQL_PORT'),
+        getenv('MSSQL_DATABASE')
+    );
+    
+    $pdo = new PDO(
+        $dsn,
+        getenv('MSSQL_USERNAME'),
+        getenv('MSSQL_PASSWORD'),
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+    );
+    
+    echo "✓ PDO connection successful\n";
+    $pdo = null;
+} catch (PDOException $e) {
+    echo "❌ PDO connection failed: " . $e->getMessage() . "\n";
+}
+```
+
+Run the test:
+
+```bash
+docker compose up
+```
+
+## Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="Connection timeout">
+    **Problem:** Connection times out before establishing.
+
+    **Solutions:**
+    1. Verify SQL Server is running and accessible
+    2. Check network connectivity between containers
+    3. Ensure SQL Server is listening on the correct port
+    4. Increase `LoginTimeout` in connection options
+    5. Check firewall rules
+
+    ```php
+    $connectionOptions = [
+        'LoginTimeout' => 60,
+        'ConnectRetryCount' => 5,
+        'ConnectRetryInterval' => 10,
+    ];
+    ```
+  </Accordion>
+
+  <Accordion title="SSL certificate errors">
+    **Problem:** SSL/TLS certificate validation fails.
+
+    **Solutions:**
+    1. For development, disable encryption:
+       ```php
+       'Encrypt' => false
+       ```
+    2. For production, use valid certificates or trust server certificate:
+       ```php
+       'Encrypt' => true,
+       'TrustServerCertificate' => true,
+       ```
+    3. Install proper CA certificates in the container
+  </Accordion>
+
+  <Accordion title="Authentication failed">
+    **Problem:** Login failed for user.
+
+    **Solutions:**
+    1. Verify credentials are correct
+    2. Check SQL Server authentication mode (Windows vs Mixed)
+    3. Ensure SQL Server authentication is enabled:
+       ```sql
+       EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE', 
+         N'Software\Microsoft\MSSQLServer\MSSQLServer',
+         N'LoginMode', REG_DWORD, 2
+       ```
+    4. Restart SQL Server after changing authentication mode
+  </Accordion>
+
+  <Accordion title="Cannot connect to named instance">
+    **Problem:** Connection fails to SQL Server named instance.
+
+    **Solution:** Use the instance name in the server string:
+    ```php
+    $serverName = "hostname\\INSTANCENAME,1433";
+    // or
+    $dsn = "sqlsrv:server=hostname\\INSTANCENAME,1433;Database=mydb";
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Connection Pooling" icon="layer-group">
+    Enable connection pooling for better performance in production:
+    
+    ```php
+    'ConnectionPooling' => true
+    ```
+  </Card>
+
+  <Card title="Error Handling" icon="exclamation-triangle">
+    Always implement proper error handling:
+    
+    ```php
+    if ($conn === false) {
+        error_log(json_encode(sqlsrv_errors()));
+        // Handle error appropriately
+    }
+    ```
+  </Card>
+
+  <Card title="Use Prepared Statements" icon="shield">
+    Prevent SQL injection with parameterized queries:
+    
+    ```php
+    $stmt = $pdo->prepare(
+        'SELECT * FROM users WHERE id = :id'
+    );
+    $stmt->execute(['id' => $userId]);
+    ```
+  </Card>
+
+  <Card title="Close Connections" icon="xmark">
+    Always close connections when done:
+    
+    ```php
+    sqlsrv_close($conn);
+    // or
+    $pdo = null;
+    ```
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="PHP Configuration" icon="gear" href="/usage/php-configuration">
+    Optimize PHP settings for database operations
+  </Card>
+
+  <Card title="Running Containers" icon="play" href="/usage/running-containers">
+    Learn more about running containers effectively
+  </Card>
+</CardGroup>

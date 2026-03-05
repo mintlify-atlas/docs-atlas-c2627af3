@@ -1,0 +1,173 @@
+---
+title: Pulling Images
+description: Learn how to pull docker-php-mssql images from Docker Hub
+---
+
+The docker-php-mssql images are available on Docker Hub under the `namoshek/php-mssql` repository. Images are automatically built and updated weekly to incorporate the latest upstream changes.
+
+## Quick Start
+
+To pull an image, use the standard Docker pull command:
+
+```bash
+docker pull namoshek/php-mssql:<tag>
+```
+
+## Available Image Tags
+
+### PHP 8.4 Images
+
+<Steps>
+  <Step title="Alpine-based Images">
+    Lightweight images based on Alpine Linux:
+    
+    ```bash
+    # CLI version
+    docker pull namoshek/php-mssql:8.4-cli-alpine
+    
+    # FPM version
+    docker pull namoshek/php-mssql:8.4-fpm-alpine
+    
+    # With Swoole support
+    docker pull namoshek/php-mssql:8.4-cli-alpine-swoole
+    docker pull namoshek/php-mssql:8.4-fpm-alpine-swoole
+    ```
+  </Step>
+
+  <Step title="Debian-based Images">
+    Full-featured images based on Debian Bookworm:
+    
+    ```bash
+    # CLI version
+    docker pull namoshek/php-mssql:8.4-cli
+    
+    # FPM version
+    docker pull namoshek/php-mssql:8.4-fpm
+    ```
+  </Step>
+</Steps>
+
+### PHP 8.3 Images
+
+```bash
+# Alpine-based
+docker pull namoshek/php-mssql:8.3-cli-alpine
+docker pull namoshek/php-mssql:8.3-fpm-alpine
+docker pull namoshek/php-mssql:8.3-cli-alpine-swoole
+docker pull namoshek/php-mssql:8.3-fpm-alpine-swoole
+
+# Debian-based
+docker pull namoshek/php-mssql:8.3-cli
+docker pull namoshek/php-mssql:8.3-fpm
+```
+
+### PHP 8.2 Images
+
+```bash
+# Alpine-based
+docker pull namoshek/php-mssql:8.2-cli-alpine
+docker pull namoshek/php-mssql:8.2-fpm-alpine
+docker pull namoshek/php-mssql:8.2-cli-alpine-swoole
+docker pull namoshek/php-mssql:8.2-fpm-alpine-swoole
+
+# Debian-based
+docker pull namoshek/php-mssql:8.2-cli
+docker pull namoshek/php-mssql:8.2-fpm
+```
+
+### PHP 8.1 Images
+
+```bash
+# Alpine-based
+docker pull namoshek/php-mssql:8.1-cli-alpine
+docker pull namoshek/php-mssql:8.1-fpm-alpine
+docker pull namoshek/php-mssql:8.1-cli-alpine-swoole
+docker pull namoshek/php-mssql:8.1-fpm-alpine-swoole
+
+# Debian-based
+docker pull namoshek/php-mssql:8.1-cli
+docker pull namoshek/php-mssql:8.1-fpm
+```
+
+## What's Included
+
+All images include:
+
+- **Microsoft ODBC Driver 18** for SQL Server
+- **sqlsrv** PHP extension
+- **pdo_sqlsrv** PHP extension
+- Additional PHP extensions: bcmath, ds, exif, gd, intl, opcache, pcntl, redis, zip
+
+### CLI Images Only
+
+CLI variants also include:
+
+- nano text editor
+- Node.js (version 22.x)
+- npm package manager
+- Yarn package manager
+- Composer
+- pcov (code coverage extension)
+
+### FPM Images
+
+FPM variants are optimized for production use with web servers like Nginx or Apache.
+
+## Choosing the Right Image
+
+<CardGroup cols={2}>
+  <Card title="CLI vs FPM" icon="terminal">
+    - Use **CLI** for command-line scripts, cron jobs, and development
+    - Use **FPM** for web applications served by Nginx or Apache
+  </Card>
+
+  <Card title="Alpine vs Debian" icon="linux">
+    - Use **Alpine** for smaller image sizes (~200MB vs ~500MB)
+    - Use **Debian** for broader package compatibility and tooling
+  </Card>
+</CardGroup>
+
+## Verifying the Image
+
+After pulling, verify the image is available:
+
+```bash
+docker images namoshek/php-mssql
+```
+
+Check the installed PHP and extension versions:
+
+```bash
+docker run --rm namoshek/php-mssql:8.4-cli php -v
+docker run --rm namoshek/php-mssql:8.4-cli php -m | grep sqlsrv
+```
+
+## Image Updates
+
+Images are rebuilt weekly to incorporate:
+
+- Latest PHP security patches
+- Updated Microsoft SQL Server drivers
+- Updated PHP extensions
+
+To ensure you have the latest version, pull the image regularly:
+
+```bash
+docker pull namoshek/php-mssql:8.4-cli
+```
+
+<Warning>
+  Always test updated images in a development environment before deploying to production.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Running Containers" icon="play" href="/usage/running-containers">
+    Learn how to run containers with these images
+  </Card>
+
+  <Card title="MSSQL Connection" icon="database" href="/usage/mssql-connection">
+    Connect to Microsoft SQL Server from PHP
+  </Card>
+</CardGroup>

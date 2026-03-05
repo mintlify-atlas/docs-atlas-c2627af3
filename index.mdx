@@ -1,97 +1,128 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Docker PHP with MS SQL Server"
+description: "Production-ready Docker images with PHP and Microsoft SQL Server drivers pre-installed"
 ---
 
-## Setting up
+<div style={{
+  background: 'linear-gradient(135deg, #244455 0%, #1a3340 100%)',
+  padding: '3rem 2rem',
+  borderRadius: '4px',
+  marginBottom: '2rem',
+  color: 'white'
+}}>
+  <h1 style={{fontSize: '48px', fontWeight: 700, marginBottom: '1rem', color: 'white'}}>
+    Docker PHP with MS SQL Server
+  </h1>
+  <p style={{fontSize: '20px', opacity: 0.9, marginBottom: '2rem', color: 'white'}}>
+    Docker images based on official PHP images with Microsoft SQL Server drivers pre-installed. Built for production, optimized for performance.
+  </p>
+  <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
+    <a href="/quickstart" style={{
+      background: '#2563EB',
+      color: 'white',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '4px',
+      textDecoration: 'none',
+      fontWeight: 600
+    }}>
+      Get Started
+    </a>
+    <a href="https://github.com/grusso-dev/docker-php-mssql" style={{
+      background: 'transparent',
+      color: 'white',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '4px',
+      textDecoration: 'none',
+      fontWeight: 600,
+      border: '2px solid white'
+    }}>
+      View on GitHub
+    </a>
+  </div>
+</div>
 
-Get your documentation site up and running in minutes.
+## Key Features
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Pre-installed Drivers" icon="database">
+    Microsoft SQL Server drivers (sqlsrv and pdo_sqlsrv) ready to use out of the box
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Multiple PHP Versions" icon="code">
+    Support for PHP 8.1, 8.2, 8.3, and 8.4 with regular updates
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Alpine & Debian Variants" icon="docker">
+    Choose between lightweight Alpine or full-featured Debian base images
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="FPM & CLI" icon="terminal">
+    Both PHP-FPM and CLI configurations available for any use case
   </Card>
-</Columns>
+  <Card title="Rich Extensions" icon="puzzle-piece">
+    Includes bcmath, ds, exif, gd, intl, opcache, pcntl, redis, and zip extensions
+  </Card>
+  <Card title="Swoole Support" icon="bolt">
+    Optional Swoole support for high-performance asynchronous applications
+  </Card>
+  <Card title="Development Tools" icon="wrench">
+    Composer, Node.js, npm, and yarn included in CLI images
+  </Card>
+  <Card title="Weekly Builds" icon="clock">
+    Automatically rebuilt weekly to stay up-to-date with upstream changes
+  </Card>
+</CardGroup>
 
-## Create beautiful pages
+## Quick Start
 
-Everything you need to create world-class documentation.
+Get started with a simple pull and run:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<CodeGroup>
 
-## Need inspiration?
+```bash Docker Pull
+docker pull namoshek/php-mssql:8.4-cli-alpine
+```
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+```bash Docker Run
+docker run -it namoshek/php-mssql:8.4-cli-alpine php -v
+```
+
+```bash Docker Compose
+services:
+  app:
+    image: namoshek/php-mssql:8.4-fpm-alpine
+    volumes:
+      - ./app:/var/www
+```
+
+</CodeGroup>
+
+## Image Variants
+
+Choose the right image for your needs:
+
+<CardGroup cols={3}>
+  <Card title="Debian Images" icon="linux" href="/images/debian">
+    Full-featured Debian-based images with comprehensive tooling
+  </Card>
+  <Card title="Alpine Images" icon="mountain" href="/images/alpine">
+    Lightweight Alpine Linux images optimized for size
+  </Card>
+  <Card title="Swoole Images" icon="rocket" href="/images/swoole">
+    High-performance images with Swoole extension
+  </Card>
+</CardGroup>
+
+## Documentation
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="play" href="/quickstart">
+    Get up and running in minutes
+  </Card>
+  <Card title="Usage Examples" icon="book" href="/usage/pulling-images">
+    Learn how to use the images effectively
+  </Card>
+  <Card title="Available Tags" icon="tags" href="/reference/available-tags">
+    Browse all available image tags
+  </Card>
+  <Card title="Contributing" icon="code-branch" href="/development/contributing">
+    Help improve the project
+  </Card>
+</CardGroup>

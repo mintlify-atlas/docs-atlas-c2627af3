@@ -1,0 +1,335 @@
+---
+title: "Debian-based Images"
+description: "Full-featured Docker images built on Debian Linux with comprehensive tooling and development utilities"
+---
+
+## Overview
+
+Debian-based images provide a full-featured environment with extensive package availability and comprehensive tooling. These images are ideal for development environments and production applications that require a wide range of system utilities.
+
+<Note>
+Debian images are larger than Alpine variants but offer broader compatibility and more pre-installed tools.
+</Note>
+
+## Available Tags
+
+<Tabs>
+  <Tab title="PHP 8.4">
+    - `namoshek/php-mssql:8.4-cli`
+    - `namoshek/php-mssql:8.4-fpm`
+  </Tab>
+  <Tab title="PHP 8.3">
+    - `namoshek/php-mssql:8.3-cli`
+    - `namoshek/php-mssql:8.3-fpm`
+  </Tab>
+  <Tab title="PHP 8.2">
+    - `namoshek/php-mssql:8.2-cli`
+    - `namoshek/php-mssql:8.2-fpm`
+  </Tab>
+  <Tab title="PHP 8.1">
+    - `namoshek/php-mssql:8.1-cli`
+    - `namoshek/php-mssql:8.1-fpm`
+  </Tab>
+</Tabs>
+
+## What's Included
+
+### Base System
+
+Built on official PHP Docker images with Debian base:
+
+<CodeGroup>
+
+```dockerfile CLI Base
+FROM php:8.4-cli
+```
+
+```dockerfile FPM Base
+FROM php:8.4-fpm
+```
+
+</CodeGroup>
+
+### Microsoft SQL Server Components
+
+All Debian images include:
+
+- **msodbcsql18** - Microsoft ODBC Driver 18 for SQL Server
+- **mssql-tools18** - Command-line tools (sqlcmd and bcp)
+- **unixodbc-dev** - ODBC development headers
+
+<CodeGroup>
+
+```dockerfile Installation
+# Install MS SQL Server prerequisites
+RUN curl -sSL -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb \
+    && apt-get update \
+    && apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+</CodeGroup>
+
+### PHP Extensions
+
+All images include these pre-installed PHP extensions:
+
+<CardGroup cols={3}>
+  <Card title="bcmath" icon="calculator">
+    Arbitrary precision mathematics
+  </Card>
+  <Card title="ds" icon="sitemap">
+    Efficient data structures
+  </Card>
+  <Card title="exif" icon="image">
+    Read EXIF metadata from images
+  </Card>
+  <Card title="gd" icon="paintbrush">
+    Image processing library
+  </Card>
+  <Card title="intl" icon="globe">
+    Internationalization functions
+  </Card>
+  <Card title="opcache" icon="gauge-high">
+    Opcode caching for performance
+  </Card>
+  <Card title="pcntl" icon="microchip">
+    Process control functions
+  </Card>
+  <Card title="pcov" icon="chart-line">
+    Code coverage driver (CLI only)
+  </Card>
+  <Card title="pdo_sqlsrv" icon="database">
+    PDO driver for SQL Server
+  </Card>
+  <Card title="redis" icon="server">
+    Redis client extension
+  </Card>
+  <Card title="sqlsrv" icon="database">
+    Native SQL Server driver
+  </Card>
+  <Card title="zip" icon="file-zipper">
+    ZIP archive handling
+  </Card>
+</CardGroup>
+
+### Development Tools (CLI Images Only)
+
+CLI images include additional development utilities:
+
+<Tabs>
+  <Tab title="Composer">
+    ```bash
+    # Composer is pre-installed and ready to use
+    composer --version
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```bash
+    # Node.js 22.x (PHP 8.4) or 20.x (PHP 8.1-8.3)
+    node --version
+    npm --version
+    ```
+  </Tab>
+  <Tab title="Yarn">
+    ```bash
+    # Yarn package manager
+    yarn --version
+    ```
+  </Tab>
+</Tabs>
+
+### System Utilities
+
+Common utilities included:
+
+- `apt-transport-https` - HTTPS support for APT
+- `curl` - Command-line HTTP client
+- `gnupg2` - GNU Privacy Guard
+- `nano` - Text editor
+- `unzip` - Archive extraction
+
+## Complete Dockerfile
+
+<Tabs>
+  <Tab title="CLI">
+    ```dockerfile
+    FROM php:8.4-cli
+
+    ENV ACCEPT_EULA=Y
+
+    # Install prerequisites required for tools and extensions
+    RUN apt-get update \
+        && apt-get install -y apt-transport-https curl gnupg2 libpng-dev libzip-dev nano unzip \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Install prerequisites for the sqlsrv and pdo_sqlsrv PHP extensions
+    RUN curl -sSL -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb \
+        && dpkg -i packages-microsoft-prod.deb \
+        && rm packages-microsoft-prod.deb \
+        && apt-get update \
+        && apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Retrieve the script used to install PHP extensions
+    COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/bin/install-php-extensions
+
+    # Install required PHP extensions
+    RUN chmod uga+x /usr/bin/install-php-extensions \
+        && sync \
+        && install-php-extensions bcmath ds exif gd intl opcache pcntl pcov pdo_sqlsrv redis sqlsrv zip
+
+    # Download composer and mark it as executable
+    RUN curl -o /usr/local/bin/composer https://getcomposer.org/composer-stable.phar \
+        && chmod +x /usr/local/bin/composer
+
+    # Download and install nodejs as well as yarn
+    RUN curl -fsSL https://deb.nodesource.com/setup_22.x -o nodesource_setup.sh \
+        && bash nodesource_setup.sh \
+        && apt-get update \
+        && apt-get install -y nodejs \
+        && rm -rf /var/lib/apt/lists/* \
+        && npm install -g yarn
+
+    # Set the working directory
+    WORKDIR /var/www
+    ```
+  </Tab>
+  <Tab title="FPM">
+    ```dockerfile
+    FROM php:8.4-fpm
+
+    ENV ACCEPT_EULA=Y
+
+    # Install prerequisites required for tools and extensions
+    RUN apt-get update \
+        && apt-get install -y apt-transport-https curl gnupg2 libpng-dev libzip-dev nano unzip \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Install prerequisites for the sqlsrv and pdo_sqlsrv PHP extensions
+    RUN curl -sSL -O https://packages.microsoft.com/config/debian/$(grep VERSION_ID /etc/os-release | cut -d '"' -f 2 | cut -d '.' -f 1)/packages-microsoft-prod.deb \
+        && dpkg -i packages-microsoft-prod.deb \
+        && rm packages-microsoft-prod.deb \
+        && apt-get update \
+        && apt-get install -y msodbcsql18 mssql-tools18 unixodbc-dev \
+        && rm -rf /var/lib/apt/lists/*
+
+    # Retrieve the script used to install PHP extensions
+    COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/bin/install-php-extensions
+
+    # Install required PHP extensions
+    RUN chmod uga+x /usr/bin/install-php-extensions \
+        && sync \
+        && install-php-extensions bcmath ds exif gd intl opcache pcntl pdo_sqlsrv redis sqlsrv zip
+
+    # Set the working directory
+    WORKDIR /var/www
+    ```
+  </Tab>
+</Tabs>
+
+## Image Size
+
+Debian images are larger due to the comprehensive system:
+
+- **CLI images**: ~600-700 MB
+- **FPM images**: ~500-600 MB
+
+<Warning>
+If image size is a critical concern for your deployment, consider using [Alpine images](/images/alpine) instead.
+</Warning>
+
+## When to Use Debian Images
+
+<CardGroup cols={2}>
+  <Card title="Development" icon="code">
+    Ideal for local development environments with full tooling support
+  </Card>
+  <Card title="Compatibility" icon="check">
+    Better compatibility with packages requiring glibc instead of musl
+  </Card>
+  <Card title="Debugging" icon="bug">
+    More utilities available for troubleshooting and debugging
+  </Card>
+  <Card title="Complex Apps" icon="diagram-project">
+    Applications with many dependencies that may not work well on Alpine
+  </Card>
+</CardGroup>
+
+## Usage Examples
+
+<CodeGroup>
+
+```bash Docker Run
+docker run -it namoshek/php-mssql:8.4-cli php -v
+```
+
+```yaml Docker Compose
+services:
+  app:
+    image: namoshek/php-mssql:8.4-fpm
+    volumes:
+      - ./app:/var/www
+    environment:
+      - PHP_INI_SCAN_DIR=/usr/local/etc/php/conf.d
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./app:/var/www
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+```
+
+```dockerfile Custom Dockerfile
+FROM namoshek/php-mssql:8.4-cli
+
+# Install additional packages
+RUN apt-get update && apt-get install -y \
+    git \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy your application
+COPY . /var/www
+
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+CMD ["php", "artisan", "serve", "--host=0.0.0.0"]
+```
+
+</CodeGroup>
+
+## Comparison with Alpine
+
+| Feature | Debian | Alpine |
+|---------|--------|--------|
+| Base size | Larger (~200MB) | Smaller (~50MB) |
+| C library | glibc | musl libc |
+| Package manager | apt | apk |
+| Compatibility | Excellent | Good |
+| Development tools | Included (CLI) | Included (CLI) |
+| Best for | Development, compatibility | Production, minimal size |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Alpine Images" icon="mountain" href="/images/alpine">
+    Explore lightweight Alpine Linux variants
+  </Card>
+  <Card title="Swoole Images" icon="bolt" href="/images/swoole">
+    High-performance asynchronous PHP images
+  </Card>
+  <Card title="Usage Guide" icon="book" href="/usage/pulling-images">
+    Learn how to use these images effectively
+  </Card>
+  <Card title="PHP Extensions" icon="puzzle-piece" href="/reference/php-extensions">
+    Complete list of available extensions
+  </Card>
+</CardGroup>

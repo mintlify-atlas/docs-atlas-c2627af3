@@ -1,80 +1,393 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get up and running with docker-php-mssql in minutes
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through pulling a docker-php-mssql image, running a container, and connecting to a Microsoft SQL Server database using PHP.
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Pull the Docker Image">
+    Choose the image variant that matches your needs. For this example, we'll use the PHP 8.4 CLI Alpine image.
+
+    ```bash
+    docker pull namoshek/php-mssql:8.4-cli-alpine
+    ```
+
+    <Tip>
+    Alpine images are smaller and faster to download. Use Debian-based images if you need broader compatibility or specific tools.
+    </Tip>
+
+    **Available image tags:**
+    - `8.4-cli-alpine` / `8.4-fpm-alpine` - Alpine Linux
+    - `8.4-cli` / `8.4-fpm` - Debian Bookworm
+    - `8.4-cli-alpine-swoole` / `8.4-fpm-alpine-swoole` - With Swoole extension
+
+    Replace `8.4` with `8.3`, `8.2`, or `8.1` for other PHP versions.
+  </Step>
+
+  <Step title="Run a Test Container">
+    Start an interactive container to verify the installation:
+
+    ```bash
+    docker run -it --rm namoshek/php-mssql:8.4-cli-alpine php -v
+    ```
+
+    You should see output similar to:
+    ```
+    PHP 8.4.x (cli) (built: ...) ( NTS )
+    Copyright (c) The PHP Group
+    Zend Engine v4.4.x, Copyright (c) Zend Technologies
+        with Zend OPcache v8.4.x, Copyright (c), by Zend Technologies
+    ```
+  </Step>
+
+  <Step title="Verify SQL Server Extensions">
+    Check that the SQL Server extensions are installed:
+
+    ```bash
+    docker run -it --rm namoshek/php-mssql:8.4-cli-alpine php -m | grep sqlsrv
+    ```
+
+    Expected output:
+    ```
+    pdo_sqlsrv
+    sqlsrv
+    ```
+  </Step>
+
+  <Step title="Create a Test PHP Script">
+    Create a simple PHP script to test the SQL Server connection. Save this as `test-connection.php`:
+
+    ```php test-connection.php
+    <?php
+
+    // Configuration
+    $serverName = 'your-server.database.windows.net';
+    $database = 'your_database';
+    $username = 'your_username';
+    $password = 'your_password';
+
+    // Connection options
+    $connectionOptions = [
+        'Database' => $database,
+        'Uid' => $username,
+        'PWD' => $password,
+        'Encrypt' => true,
+        'TrustServerCertificate' => false,
+    ];
+
+    // Test connection using sqlsrv
+    echo "Testing sqlsrv connection...\n";
+    $conn = sqlsrv_connect($serverName, $connectionOptions);
+
+    if ($conn === false) {
+        echo "Connection failed!\n";
+        die(print_r(sqlsrv_errors(), true));
+    }
+
+    echo "✓ Successfully connected using sqlsrv!\n";
+    echo "Server version: " . sqlsrv_server_info($conn)['SQLServerVersion'] . "\n";
+
+    sqlsrv_close($conn);
+
+    // Test connection using PDO
+    echo "\nTesting PDO connection...\n";
+    try {
+        $dsn = "sqlsrv:server={$serverName};Database={$database};Encrypt=yes;TrustServerCertificate=no";
+        $pdo = new PDO($dsn, $username, $password);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        echo "✓ Successfully connected using PDO!\n";
+        
+        // Test query
+        $stmt = $pdo->query('SELECT @@VERSION AS version');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo "Database version: " . substr($result['version'], 0, 50) . "...\n";
+    } catch (PDOException $e) {
+        echo "Connection failed: " . $e->getMessage() . "\n";
+    }
+
+    echo "\nConnection test completed!\n";
+    ```
+
+    <Note>
+    Update the connection parameters with your actual SQL Server credentials before running the script.
+    </Note>
+  </Step>
+
+  <Step title="Run the Test Script">
+    Execute the script in a container:
+
+    ```bash
+    docker run -it --rm \
+      -v $(pwd)/test-connection.php:/var/www/test-connection.php \
+      namoshek/php-mssql:8.4-cli-alpine \
+      php /var/www/test-connection.php
+    ```
+
+    Successful output will look like:
+    ```
+    Testing sqlsrv connection...
+    ✓ Successfully connected using sqlsrv!
+    Server version: 16.00.1000
+
+    Testing PDO connection...
+    ✓ Successfully connected using PDO!
+    Database version: Microsoft SQL Server 2022 (RTM) - 16.0.1000.6...
+
+    Connection test completed!
+    ```
+  </Step>
+</Steps>
+
+## Using with Docker Compose
+
+For a complete application setup, use Docker Compose to orchestrate your PHP application and SQL Server database:
+
+```yaml docker-compose.yml
+version: '3.8'
+
+services:
+  app:
+    image: namoshek/php-mssql:8.4-fpm-alpine
+    volumes:
+      - ./src:/var/www
+    networks:
+      - app-network
+    environment:
+      - DB_HOST=sqlserver
+      - DB_DATABASE=myapp
+      - DB_USERNAME=sa
+      - DB_PASSWORD=YourStrong@Passw0rd
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./src:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - app-network
+    depends_on:
+      - app
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    networks:
+      - app-network
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+```
+
+<Warning>
+Never use default passwords like shown above in production. Always use strong, unique passwords and consider using Docker secrets or environment-specific configuration.
+</Warning>
+
+## Connection Examples
+
+Here are practical examples for common PHP frameworks and libraries:
+
+<CodeGroup>
+
+```php Laravel (.env)
+DB_CONNECTION=sqlsrv
+DB_HOST=your-server.database.windows.net
+DB_PORT=1433
+DB_DATABASE=your_database
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+
+# Optional: Customize connection options
+DB_ENCRYPT=yes
+DB_TRUST_SERVER_CERTIFICATE=false
+```
+
+```php Symfony (config/packages/doctrine.yaml)
+doctrine:
+    dbal:
+        driver: 'pdo_sqlsrv'
+        host: '%env(DATABASE_HOST)%'
+        port: '%env(DATABASE_PORT)%'
+        dbname: '%env(DATABASE_NAME)%'
+        user: '%env(DATABASE_USER)%'
+        password: '%env(DATABASE_PASSWORD)%'
+        charset: UTF8
+        options:
+            Encrypt: true
+            TrustServerCertificate: false
+```
+
+```php PDO (Raw Connection)
+<?php
+
+$serverName = getenv('DB_HOST') ?: 'localhost';
+$database = getenv('DB_DATABASE') ?: 'myapp';
+$username = getenv('DB_USERNAME') ?: 'sa';
+$password = getenv('DB_PASSWORD');
+
+try {
+    $dsn = "sqlsrv:server={$serverName};Database={$database}";
+    $pdo = new PDO($dsn, $username, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
+    
+    echo "Connected successfully!\n";
+} catch (PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+```
+
+```php sqlsrv (Direct Driver)
+<?php
+
+$serverName = getenv('DB_HOST') ?: 'localhost';
+$connectionOptions = [
+    'Database' => getenv('DB_DATABASE') ?: 'myapp',
+    'Uid' => getenv('DB_USERNAME') ?: 'sa',
+    'PWD' => getenv('DB_PASSWORD'),
+    'CharacterSet' => 'UTF-8',
+    'ReturnDatesAsStrings' => true,
+];
+
+$conn = sqlsrv_connect($serverName, $connectionOptions);
+
+if ($conn === false) {
+    die(print_r(sqlsrv_errors(), true));
+}
+
+echo "Connected successfully!\n";
+
+// Execute a query
+$sql = "SELECT TOP 10 * FROM users";
+$stmt = sqlsrv_query($conn, $sql);
+
+while ($row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC)) {
+    echo $row['name'] . "\n";
+}
+
+sqlsrv_free_stmt($stmt);
+sqlsrv_close($conn);
+```
+
+</CodeGroup>
+
+## Using in Dockerfile
+
+Extend the base image to create your own custom application image:
+
+```dockerfile Dockerfile
+FROM namoshek/php-mssql:8.4-fpm-alpine
+
+# Copy application files
+COPY . /var/www
+
+# Install application dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+# Set proper permissions
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+
+# Expose port (if needed)
+EXPOSE 9000
+
+CMD ["php-fpm"]
+```
+
+Build and run your custom image:
+
+```bash
+docker build -t myapp:latest .
+docker run -d -p 9000:9000 myapp:latest
+```
+
+## Troubleshooting Common Issues
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="SSL/TLS Connection Errors" icon="lock">
+    If you encounter SSL certificate errors, you may need to adjust encryption settings:
+
+    ```php
+    // For development/testing only - not recommended for production
+    $connectionOptions = [
+        'TrustServerCertificate' => true,
+        'Encrypt' => true,
+    ];
+    ```
+
+    For production, ensure your SQL Server has a valid SSL certificate.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+
+  <Accordion title="Connection Timeouts" icon="clock">
+    Increase connection timeout values:
+
+    ```php
+    $connectionOptions = [
+        'LoginTimeout' => 30,
+        'ConnectRetryCount' => 3,
+        'ConnectRetryInterval' => 10,
+    ];
+    ```
+  </Accordion>
+
+  <Accordion title="Character Encoding Issues" icon="font">
+    Ensure proper character set configuration:
+
+    ```php
+    // For sqlsrv
+    $connectionOptions['CharacterSet'] = 'UTF-8';
+
+    // For PDO
+    $dsn = "sqlsrv:server={$serverName};Database={$database};charset=UTF-8";
+    ```
+  </Accordion>
+
+  <Accordion title="Azure SQL Database Connection" icon="cloud">
+    When connecting to Azure SQL Database:
+
+    ```php
+    $serverName = 'your-server.database.windows.net';
+    $connectionOptions = [
+        'Database' => 'your_database',
+        'Uid' => 'your_username@your-server',  // Note: include @server-name
+        'PWD' => 'your_password',
+        'Encrypt' => true,
+        'TrustServerCertificate' => false,
+    ];
+    ```
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="PHP Configuration" icon="gear" href="/usage/php-configuration">
+    Learn how to customize PHP settings and optimize your container
+  </Card>
+  <Card title="Available Tags" icon="tags" href="/reference/available-tags">
+    Explore all available image tags and versions
+  </Card>
+  <Card title="Building Locally" icon="hammer" href="/development/building-locally">
+    Build your own custom images with additional tools and extensions
+  </Card>
+  <Card title="Image Variants" icon="docker" href="/images/debian">
+    Compare Debian, Alpine, and Swoole image variants
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

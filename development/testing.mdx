@@ -1,0 +1,317 @@
+---
+title: Testing Images
+description: Learn how to test docker-php-mssql images to ensure SQL Server connectivity and extension functionality
+---
+
+## Overview
+
+Testing is crucial to ensure the Docker images work correctly with Microsoft SQL Server. The project includes automated tests that verify both the `sqlsrv` and `pdo_sqlsrv` extensions can successfully connect to a SQL Server database.
+
+## Test Infrastructure
+
+The test suite consists of:
+
+- **Test Script**: `.ci/tests/test_connection.php` - PHP script that tests SQL Server connectivity
+- **CI Workflow**: `.github/workflows/create-and-test-docker-image.yml` - Automated testing pipeline
+- **SQL Server Service**: Uses `mcr.microsoft.com/mssql/server:2022-latest` for testing
+
+## Running Tests Locally
+
+<Steps>
+  <Step title="Start a SQL Server container">
+    First, start a SQL Server instance for testing:
+
+    ```bash
+    docker run -d \
+      --name mssql-test \
+      -e ACCEPT_EULA=Y \
+      -e MSSQL_PID=Developer \
+      -e SA_PASSWORD='YourStrong@Password123' \
+      -p 1433:1433 \
+      mcr.microsoft.com/mssql/server:2022-latest
+    ```
+
+    <Note>
+      The SA password must meet SQL Server's complexity requirements: at least 8 characters including uppercase, lowercase, numbers, and symbols.
+    </Note>
+  </Step>
+
+  <Step title="Wait for SQL Server to be ready">
+    SQL Server takes a few seconds to start. Wait until it's ready:
+
+    ```bash
+    # Check logs until you see "SQL Server is now ready for client connections"
+    docker logs -f mssql-test
+    ```
+
+    Or use a health check loop:
+
+    ```bash
+    until docker exec mssql-test /opt/mssql-tools18/bin/sqlcmd \
+      -S localhost -U sa -P 'YourStrong@Password123' -No -Q 'SELECT 1' &> /dev/null
+    do
+      echo "Waiting for SQL Server..."
+      sleep 2
+    done
+    echo "SQL Server is ready!"
+    ```
+  </Step>
+
+  <Step title="Run the test script">
+    Execute the test script against your built image:
+
+    ```bash
+    docker run --rm \
+      --network host \
+      -v $(pwd)/.ci/tests:/work \
+      -e MSSQL_HOST=localhost \
+      -e MSSQL_PORT=1433 \
+      -e MSSQL_DATABASE=master \
+      -e MSSQL_USERNAME=sa \
+      -e MSSQL_PASSWORD='YourStrong@Password123' \
+      namoshek/php-mssql:8.2-cli \
+      php /work/test_connection.php
+    ```
+
+    On macOS or Windows, replace `--network host` with a link to the SQL Server container:
+
+    ```bash
+    docker run --rm \
+      --link mssql-test:sqlsrv \
+      -v $(pwd)/.ci/tests:/work \
+      -e MSSQL_HOST=sqlsrv \
+      -e MSSQL_PORT=1433 \
+      -e MSSQL_DATABASE=master \
+      -e MSSQL_USERNAME=sa \
+      -e MSSQL_PASSWORD='YourStrong@Password123' \
+      namoshek/php-mssql:8.2-cli \
+      php /work/test_connection.php
+    ```
+  </Step>
+
+  <Step title="Verify test results">
+    A successful test run will output:
+
+    ```
+    == PHP extensions ==
+    sqlsrv version: 5.12.0
+    pdo_sqlsrv version: 5.12.0
+
+    == Environment variables ==
+    MSSQL_HOST: localhost
+    MSSQL_PORT:1433
+    MSSQL_USERNAME:sa
+    MSSQL_PASSWORD:YourStrong@Password123
+    MSSQL_DATABASE:master
+
+    == Testing `sqlsrv` extension ==
+    Establishing connection successful!
+    == Testing `pdo_sqlsrv` extension ==
+    Establishing connection successful!
+    ```
+
+    The exit code will be `0` on success.
+  </Step>
+
+  <Step title="Clean up">
+    Stop and remove the test SQL Server container:
+
+    ```bash
+    docker stop mssql-test
+    docker rm mssql-test
+    ```
+  </Step>
+</Steps>
+
+## Understanding the Test Script
+
+The test script (`.ci/tests/test_connection.php`) performs the following checks:
+
+### Extension Version Check
+
+```php
+echo 'sqlsrv version: ' . phpversion('sqlsrv') . PHP_EOL;
+echo 'pdo_sqlsrv version: ' . phpversion('pdo_sqlsrv') . PHP_EOL;
+```
+
+Verifies that both SQL Server extensions are installed and reports their versions.
+
+### sqlsrv Extension Test
+
+```php
+$connection = sqlsrv_connect("{$host},{$port}", [
+    'UID' => getenv('MSSQL_USERNAME'),
+    'PWD' => getenv('MSSQL_PASSWORD'),
+    'Database' => getenv('MSSQL_DATABASE'),
+    'Encrypt' => false,
+]);
+
+$success = sqlsrv_query($connection, 'SELECT 1');
+```
+
+Tests the native `sqlsrv` extension by establishing a connection and executing a simple query.
+
+### pdo_sqlsrv Extension Test
+
+```php
+$connection = new PDO(
+    "sqlsrv:server={$host},{$port};Database={$database};ConnectionPooling=0;Encrypt=no",
+    $username,
+    $password,
+    [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+);
+
+$success = $connection->query('SELECT 1');
+```
+
+Tests the PDO driver by creating a PDO connection and executing a query.
+
+## Manual Testing
+
+For quick manual verification without the test script:
+
+```bash
+# Test sqlsrv extension is loaded
+docker run --rm namoshek/php-mssql:8.2-cli php -m | grep sqlsrv
+
+# Check extension versions
+docker run --rm namoshek/php-mssql:8.2-cli php -r "echo phpversion('sqlsrv');"
+
+# Interactive PHP shell for manual testing
+docker run -it --rm \
+  --link mssql-test:sqlsrv \
+  namoshek/php-mssql:8.2-cli \
+  php -a
+```
+
+In the interactive shell, you can manually test connections:
+
+```php
+$conn = sqlsrv_connect('sqlsrv,1433', [
+    'UID' => 'sa',
+    'PWD' => 'YourStrong@Password123',
+    'Database' => 'master',
+    'Encrypt' => false
+]);
+var_dump($conn);
+```
+
+## Automated CI Testing
+
+The GitHub Actions workflow automatically tests each image build:
+
+1. **Builds the image** using Docker Buildx
+2. **Starts a SQL Server 2022 container** as a service
+3. **Waits for SQL Server** to be ready using health checks
+4. **Runs the test script** inside the built image
+5. **Fails the build** if tests don't pass
+
+The workflow uses these environment variables:
+
+```yaml
+MSSQL_HOST=sqlsrv
+MSSQL_PORT=1433
+MSSQL_DATABASE=master
+MSSQL_USERNAME=sa
+MSSQL_PASSWORD=${{ secrets.TESTS_SQLSRV_DB_SECRET }}
+```
+
+## Troubleshooting
+
+### Connection Timeouts
+
+If tests fail with connection timeouts:
+
+1. Ensure SQL Server is fully started (check logs)
+2. Verify network connectivity between containers
+3. Check firewall rules if testing on remote hosts
+
+### Authentication Errors
+
+If you see authentication errors:
+
+1. Verify the SA password meets complexity requirements
+2. Check that the password is correctly passed to the test script
+3. Ensure SQL Server is configured to accept SQL authentication
+
+### Extension Not Found
+
+If PHP reports extensions are missing:
+
+1. Verify the image built successfully
+2. Check the Dockerfile includes extension installation
+3. Rebuild the image without cache: `docker build --no-cache ...`
+
+### SSL/TLS Certificate Errors
+
+The tests disable encryption (`Encrypt=false` or `Encrypt=no`) to avoid certificate issues. For production, use proper SSL certificates:
+
+```php
+$connection = sqlsrv_connect("{$host},{$port}", [
+    'UID' => $username,
+    'PWD' => $password,
+    'Database' => $database,
+    'Encrypt' => true,
+    'TrustServerCertificate' => false,
+]);
+```
+
+### Checking Detailed Error Messages
+
+If a test fails, the script outputs detailed error information:
+
+```bash
+# The test script will dump errors on failure
+array(1) {
+  [0]=>
+  string(123) "[{\"code\":-1,\"message\":\"Connection failed\"}]"
+}
+```
+
+Use this information to diagnose the specific issue.
+
+## Testing Different PHP Versions
+
+Test all PHP versions to ensure consistency:
+
+```bash
+# Test PHP 8.1
+docker run --rm --link mssql-test:sqlsrv \
+  -v $(pwd)/.ci/tests:/work \
+  -e MSSQL_HOST=sqlsrv -e MSSQL_PORT=1433 \
+  -e MSSQL_DATABASE=master -e MSSQL_USERNAME=sa \
+  -e MSSQL_PASSWORD='YourStrong@Password123' \
+  namoshek/php-mssql:8.1-cli php /work/test_connection.php
+
+# Test PHP 8.2
+docker run --rm --link mssql-test:sqlsrv \
+  -v $(pwd)/.ci/tests:/work \
+  -e MSSQL_HOST=sqlsrv -e MSSQL_PORT=1433 \
+  -e MSSQL_DATABASE=master -e MSSQL_USERNAME=sa \
+  -e MSSQL_PASSWORD='YourStrong@Password123' \
+  namoshek/php-mssql:8.2-cli php /work/test_connection.php
+
+# Test PHP 8.3
+docker run --rm --link mssql-test:sqlsrv \
+  -v $(pwd)/.ci/tests:/work \
+  -e MSSQL_HOST=sqlsrv -e MSSQL_PORT=1433 \
+  -e MSSQL_DATABASE=master -e MSSQL_USERNAME=sa \
+  -e MSSQL_PASSWORD='YourStrong@Password123' \
+  namoshek/php-mssql:8.3-cli php /work/test_connection.php
+
+# Test PHP 8.4
+docker run --rm --link mssql-test:sqlsrv \
+  -v $(pwd)/.ci/tests:/work \
+  -e MSSQL_HOST=sqlsrv -e MSSQL_PORT=1433 \
+  -e MSSQL_DATABASE=master -e MSSQL_USERNAME=sa \
+  -e MSSQL_PASSWORD='YourStrong@Password123' \
+  namoshek/php-mssql:8.4-cli php /work/test_connection.php
+```
+
+## Next Steps
+
+After testing your images:
+
+- [Contribute](/development/contributing) your changes to the project
+- Review the [PHP Configuration guide](/usage/php-configuration) for production usage
+- Explore the [Available PHP Extensions](/reference/php-extensions) for more information

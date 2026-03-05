@@ -1,0 +1,108 @@
+---
+title: Available Tags
+description: Complete list of all available Docker image tags
+---
+
+This page lists all available Docker image tags for the docker-php-mssql project. All images are available at `namoshek/php-mssql:<tag>` on Docker Hub.
+
+## Current Tags
+
+All current images include Microsoft ODBC Driver 18, sqlsrv, and pdo_sqlsrv extensions.
+
+### PHP 8.4
+
+#### Debian Bookworm
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.4-cli` | php:8.4-cli | CLI | Composer, Node.js 22, npm, yarn, nano, pcov |
+| `8.4-fpm` | php:8.4-fpm | FPM | - |
+
+#### Alpine Linux
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.4-cli-alpine` | php:8.4-cli-alpine | CLI | Composer, Node.js, npm, yarn, nano, pcov |
+| `8.4-fpm-alpine` | php:8.4-fpm-alpine | FPM | - |
+| `8.4-cli-alpine-swoole` | namoshek/php-mssql:8.4-cli-alpine | CLI | All cli-alpine features + Swoole extension |
+| `8.4-fpm-alpine-swoole` | namoshek/php-mssql:8.4-fpm-alpine | FPM | Swoole extension |
+
+### PHP 8.3
+
+#### Debian Bookworm
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.3-cli` | php:8.3-cli | CLI | Composer, Node.js, npm, yarn, nano, pcov |
+| `8.3-fpm` | php:8.3-fpm | FPM | - |
+
+#### Alpine Linux
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.3-cli-alpine` | php:8.3-cli-alpine | CLI | Composer, Node.js, npm, yarn, nano, pcov |
+| `8.3-fpm-alpine` | php:8.3-fpm-alpine | FPM | - |
+| `8.3-cli-alpine-swoole` | namoshek/php-mssql:8.3-cli-alpine | CLI | All cli-alpine features + Swoole extension |
+| `8.3-fpm-alpine-swoole` | namoshek/php-mssql:8.3-fpm-alpine | FPM | Swoole extension |
+
+### PHP 8.2
+
+#### Debian Bookworm
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.2-cli` | php:8.2-cli | CLI | Composer, Node.js, npm, yarn, nano, pcov |
+| `8.2-fpm` | php:8.2-fpm | FPM | - |
+
+#### Alpine Linux
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.2-cli-alpine` | php:8.2-cli-alpine | CLI | Composer, Node.js, npm, yarn, nano, pcov |
+| `8.2-fpm-alpine` | php:8.2-fpm-alpine | FPM | - |
+| `8.2-cli-alpine-swoole` | namoshek/php-mssql:8.2-cli-alpine | CLI | All cli-alpine features + Swoole extension |
+| `8.2-fpm-alpine-swoole` | namoshek/php-mssql:8.2-fpm-alpine | FPM | Swoole extension |
+
+### PHP 8.1
+
+#### Debian Bookworm
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.1-cli` | php:8.1-cli | CLI | Composer, Node.js LTS, npm, yarn, nano, pcov |
+| `8.1-fpm` | php:8.1-fpm | FPM | - |
+
+#### Alpine Linux
+
+| Tag | Base Image | Type | Additional Features |
+|-----|------------|------|--------------------|
+| `8.1-cli-alpine` | php:8.1-cli-alpine | CLI | Composer, Node.js, npm, yarn, nano, pcov |
+| `8.1-fpm-alpine` | php:8.1-fpm-alpine | FPM | - |
+| `8.1-cli-alpine-swoole` | namoshek/php-mssql:8.1-cli-alpine | CLI | All cli-alpine features + Swoole extension |
+| `8.1-fpm-alpine-swoole` | namoshek/php-mssql:8.1-fpm-alpine | FPM | Swoole extension |
+
+## Tag Naming Convention
+
+Tags follow the pattern: `<php-version>-<type>[-<variant>][-<extension>]`
+
+- **php-version**: PHP major.minor version (8.1, 8.2, 8.3, 8.4)
+- **type**: Either `cli` or `fpm`
+- **variant**: Optional `alpine` for Alpine Linux-based images (Debian Bookworm otherwise)
+- **extension**: Optional `swoole` for images with Swoole extension
+
+## Image Updates
+
+All images are automatically rebuilt and retagged weekly based on their corresponding upstream PHP images to ensure security updates and bug fixes are included.
+
+## Discontinued Tags
+
+The following tags are no longer built but may still be available on Docker Hub (not recommended for production):
+
+- PHP 7.3 (Debian Stretch + ODBC Driver 17)
+- PHP 7.4 (Debian Buster + ODBC Driver 17)
+- PHP 8.0 (Alpine + ODBC Driver 17)
+- PHP 8.0 (Debian Buster + ODBC Driver 17)
+
+<Tip>
+For the latest available tags, visit the [Docker Hub image page](https://hub.docker.com/r/namoshek/php-mssql).
+</Tip>

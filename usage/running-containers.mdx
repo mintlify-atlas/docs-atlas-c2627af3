@@ -1,0 +1,386 @@
+---
+title: Running Containers
+description: Learn how to run containers using docker-php-mssql images
+---
+
+Once you've pulled a docker-php-mssql image, you can run it as a container for various use cases including development, testing, and production deployments.
+
+## Basic Container Usage
+
+### Running a Simple Command
+
+Execute a PHP script directly:
+
+```bash
+docker run --rm namoshek/php-mssql:8.4-cli php -r "echo phpversion();"
+```
+
+### Running with a Mounted Script
+
+Run a PHP file from your host system:
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli php /app/script.php
+```
+
+### Interactive Container
+
+Start an interactive shell session:
+
+```bash
+docker run -it --rm namoshek/php-mssql:8.4-cli bash
+```
+
+## Using Docker Compose
+
+### Basic PHP Application
+
+<Steps>
+  <Step title="Create docker-compose.yml">
+    Create a `docker-compose.yml` file in your project root:
+
+    ```yaml
+    version: '3.8'
+
+    services:
+      app:
+        image: namoshek/php-mssql:8.4-cli
+        working_dir: /app
+        volumes:
+          - ./:/app
+        command: php script.php
+    ```
+  </Step>
+
+  <Step title="Run the Application">
+    Start the container:
+
+    ```bash
+    docker compose up
+    ```
+  </Step>
+</Steps>
+
+### Web Application with FPM
+
+For production web applications, use the FPM image with Nginx:
+
+```yaml
+version: '3.8'
+
+services:
+  php:
+    image: namoshek/php-mssql:8.4-fpm
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+```
+
+<Accordion title="Example nginx.conf">
+  ```nginx
+  server {
+      listen 80;
+      index index.php index.html;
+      server_name localhost;
+      root /var/www/public;
+
+      location / {
+          try_files $uri $uri/ /index.php?$query_string;
+      }
+
+      location ~ \.php$ {
+          try_files $uri =404;
+          fastcgi_split_path_info ^(.+\.php)(/.+)$;
+          fastcgi_pass php:9000;
+          fastcgi_index index.php;
+          include fastcgi_params;
+          fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+          fastcgi_param PATH_INFO $fastcgi_path_info;
+      }
+  }
+  ```
+</Accordion>
+
+### Full Stack with SQL Server
+
+Complete setup with PHP application and SQL Server:
+
+```yaml
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      SA_PASSWORD: "YourStrong@Password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    networks:
+      - app-network
+    healthcheck:
+      test: [
+        "CMD",
+        "/opt/mssql-tools18/bin/sqlcmd",
+        "-S", "localhost",
+        "-U", "sa",
+        "-P", "YourStrong@Password123",
+        "-No",
+        "-Q", "SELECT 1"
+      ]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: namoshek/php-mssql:8.4-cli
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      MSSQL_HOST: sqlserver
+      MSSQL_PORT: 1433
+      MSSQL_DATABASE: master
+      MSSQL_USERNAME: sa
+      MSSQL_PASSWORD: "YourStrong@Password123"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - app-network
+    command: php /app/script.php
+
+volumes:
+  sqlserver-data:
+
+networks:
+  app-network:
+    driver: bridge
+```
+
+<Warning>
+  Never use default passwords in production. Always use strong, unique passwords and consider using Docker secrets or environment variable files.
+</Warning>
+
+## Environment Variables
+
+### Common Environment Variables
+
+Pass environment variables to containers:
+
+```bash
+docker run --rm \
+  -e MSSQL_HOST=sqlserver \
+  -e MSSQL_PORT=1433 \
+  -e MSSQL_DATABASE=mydb \
+  -e MSSQL_USERNAME=sa \
+  -e MSSQL_PASSWORD=YourPassword \
+  -v $(pwd):/app \
+  namoshek/php-mssql:8.4-cli \
+  php /app/script.php
+```
+
+### Using Environment Files
+
+Create a `.env` file:
+
+```env
+MSSQL_HOST=sqlserver
+MSSQL_PORT=1433
+MSSQL_DATABASE=mydb
+MSSQL_USERNAME=sa
+MSSQL_PASSWORD=YourStrong@Password123
+```
+
+Reference it in docker-compose.yml:
+
+```yaml
+services:
+  app:
+    image: namoshek/php-mssql:8.4-cli
+    env_file:
+      - .env
+    # ... rest of configuration
+```
+
+<Note>
+  Add `.env` to your `.gitignore` to prevent committing sensitive credentials.
+</Note>
+
+## Volume Mounts
+
+### Application Code
+
+Mount your application code:
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli php /app/script.php
+```
+
+### Custom PHP Configuration
+
+Mount custom php.ini:
+
+```bash
+docker run --rm \
+  -v $(pwd)/custom.ini:/usr/local/etc/php/conf.d/custom.ini \
+  namoshek/php-mssql:8.4-cli \
+  php -i | grep memory_limit
+```
+
+### Persistent Data
+
+For development with composer dependencies:
+
+```yaml
+services:
+  app:
+    image: namoshek/php-mssql:8.4-cli
+    volumes:
+      - ./:/app
+      - vendor:/app/vendor
+      - composer-cache:/root/.composer
+
+volumes:
+  vendor:
+  composer-cache:
+```
+
+## Working with Composer
+
+The CLI images include Composer pre-installed:
+
+### Install Dependencies
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli composer install
+```
+
+### Update Dependencies
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli composer update
+```
+
+### Run Scripts
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli composer run-script test
+```
+
+## Working with Node.js
+
+CLI images also include Node.js, npm, and Yarn:
+
+### Install npm Packages
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli npm install
+```
+
+### Build Frontend Assets
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli npm run build
+```
+
+### Using Yarn
+
+```bash
+docker run --rm -v $(pwd):/app namoshek/php-mssql:8.4-cli yarn install
+```
+
+## Production Considerations
+
+<Steps>
+  <Step title="Use Specific Tags">
+    Always pin to specific image tags in production:
+
+    ```yaml
+    services:
+      php:
+        image: namoshek/php-mssql:8.4-fpm  # Specific version
+    ```
+  </Step>
+
+  <Step title="Resource Limits">
+    Set memory and CPU limits:
+
+    ```yaml
+    services:
+      php:
+        image: namoshek/php-mssql:8.4-fpm
+        deploy:
+          resources:
+            limits:
+              cpus: '1'
+              memory: 512M
+            reservations:
+              cpus: '0.5'
+              memory: 256M
+    ```
+  </Step>
+
+  <Step title="Health Checks">
+    Implement health checks:
+
+    ```yaml
+    services:
+      php:
+        image: namoshek/php-mssql:8.4-fpm
+        healthcheck:
+          test: ["CMD", "php", "-v"]
+          interval: 30s
+          timeout: 3s
+          retries: 3
+    ```
+  </Step>
+
+  <Step title="Logging Configuration">
+    Configure proper logging:
+
+    ```yaml
+    services:
+      php:
+        image: namoshek/php-mssql:8.4-fpm
+        logging:
+          driver: "json-file"
+          options:
+            max-size: "10m"
+            max-file: "3"
+    ```
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="PHP Configuration" icon="gear" href="/usage/php-configuration">
+    Customize PHP settings for your application
+  </Card>
+
+  <Card title="MSSQL Connection" icon="database" href="/usage/mssql-connection">
+    Learn how to connect to SQL Server from PHP
+  </Card>
+</CardGroup>

@@ -1,0 +1,211 @@
+---
+title: System Tools
+description: System tools and utilities included in the images
+---
+
+The docker-php-mssql images include various system tools and utilities to support development workflows and SQL Server connectivity.
+
+## Database Tools
+
+### Microsoft ODBC Driver 18
+
+**Available in:** All images
+
+**Version:** 18.4.1.1 (Alpine), 18.x (Debian)
+
+The Microsoft ODBC Driver for SQL Server enables native connectivity from Linux to Microsoft SQL Server and Azure SQL Database.
+
+**Alpine Installation:**
+- Package: `msodbcsql18_18.4.1.1-1_amd64.apk`
+- Cryptographically verified during installation
+
+**Debian Installation:**
+- Installed via Microsoft's official package repository
+- Version depends on Debian version
+
+<Note>
+The ODBC driver is a prerequisite for the sqlsrv and pdo_sqlsrv PHP extensions.
+</Note>
+
+### mssql-tools18
+
+**Available in:** All images
+
+**Version:** 18.4.1.1 (Alpine), 18.x (Debian)
+
+Includes command-line tools for SQL Server:
+- **sqlcmd**: Command-line query tool
+- **bcp**: Bulk copy program for data import/export
+
+```bash
+sqlcmd -S server.example.com -U username -P password -Q "SELECT @@VERSION"
+```
+
+## Development Tools (CLI Images Only)
+
+The following tools are only available in CLI image variants (`*-cli`, `*-cli-alpine`, `*-cli-alpine-swoole`).
+
+### Composer
+
+**Available in:** CLI images only
+
+**Version:** Latest stable (composer-stable.phar)
+
+PHP dependency manager for managing project dependencies.
+
+```bash
+composer install
+composer require vendor/package
+```
+
+**Installation location:** `/usr/local/bin/composer`
+
+<Tip>
+Composer is automatically updated to the latest stable version during image builds.
+</Tip>
+
+### Node.js
+
+**Available in:** CLI images only
+
+**Version:**
+- PHP 8.4 (Debian): Node.js 22.x
+- PHP 8.1-8.3 (Debian): Node.js LTS
+- Alpine: Latest available from apk repositories
+
+JavaScript runtime for running Node.js applications and build tools.
+
+```bash
+node --version
+node app.js
+```
+
+**Debian installation:** Via NodeSource official repository
+**Alpine installation:** Via apk package manager
+
+### npm
+
+**Available in:** CLI images only
+
+**Version:** Bundled with Node.js
+
+Node Package Manager for managing JavaScript dependencies.
+
+```bash
+npm install
+npm run build
+```
+
+### yarn
+
+**Available in:** CLI images only
+
+**Version:** Latest (installed globally via npm)
+
+Alternative package manager for JavaScript projects.
+
+```bash
+yarn install
+yarn build
+```
+
+**Installation:** Globally installed via `npm install -g yarn`
+
+## Text Editors
+
+### nano
+
+**Available in:** CLI images only
+
+**Version:** System default
+
+Simple command-line text editor for quick file edits.
+
+```bash
+nano /var/www/config.php
+```
+
+## System Utilities
+
+### Common Utilities (All Images)
+
+**Debian-based images:**
+- `curl` - Command-line HTTP client
+- `gnupg2` - GNU Privacy Guard for signature verification
+- `apt-transport-https` - HTTPS support for apt
+- `unzip` - Archive extraction utility
+
+**Alpine-based images:**
+- `bash` - Bourne Again Shell
+- `curl` - Command-line HTTP client (via wget fallback)
+- `gnupg` - GNU Privacy Guard
+- `less` - File pager
+- `su-exec` - Execute commands as another user
+- `unzip` - Archive extraction utility
+
+### Development Libraries
+
+These libraries are installed as prerequisites for PHP extensions:
+
+**All images:**
+- `libpng-dev` - PNG image library (for GD extension)
+- `libzip-dev` - ZIP compression library (for ZIP extension)
+- `unixodbc-dev` - ODBC library (for SQL Server connectivity)
+
+## Tool Matrix by Image Type
+
+| Tool | CLI (Debian) | FPM (Debian) | CLI (Alpine) | FPM (Alpine) |
+|------|--------------|--------------|--------------|-------------|
+| ODBC Driver 18 | ✓ | ✓ | ✓ | ✓ |
+| mssql-tools18 | ✓ | ✓ | ✓ | ✓ |
+| Composer | ✓ | - | ✓ | - |
+| Node.js | ✓ | - | ✓ | - |
+| npm | ✓ | - | ✓ | - |
+| yarn | ✓ | - | ✓ | - |
+| nano | ✓ | - | ✓ | - |
+| curl | ✓ | ✓ | ✓ | ✓ |
+| bash | ✓ | ✓ | ✓ | ✓ |
+| unzip | ✓ | ✓ | ✓ | ✓ |
+
+## Environment Variables
+
+### ACCEPT_EULA
+
+**Value:** `Y`
+
+**Set in:** All images
+
+Automatically accepts the Microsoft End-User License Agreement for ODBC Driver and mssql-tools installation.
+
+### WORKDIR
+
+**Value:** `/var/www`
+
+**Set in:** All images
+
+Default working directory for the container.
+
+## Version Information
+
+<Warning>
+Exact tool versions may vary between builds as images are automatically rebuilt weekly with the latest stable versions.
+</Warning>
+
+To check installed versions in a running container:
+
+```bash
+# PHP version
+php --version
+
+# Composer version
+composer --version
+
+# Node.js version
+node --version
+
+# ODBC driver version
+odbcinst -j
+
+# SQL Server tools version
+sqlcmd -?
+```

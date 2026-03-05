@@ -1,0 +1,447 @@
+---
+title: "Swoole Variant Images"
+description: "High-performance Docker images with Swoole extension for asynchronous and concurrent PHP applications"
+---
+
+## Overview
+
+Swoole variant images extend the Alpine-based images with the Swoole PHP extension, enabling asynchronous, concurrent, and high-performance network applications. Swoole provides coroutine-based concurrency, async I/O, and built-in HTTP/WebSocket servers.
+
+<Info>
+Swoole images are built on top of Alpine base images, inheriting all SQL Server drivers and PHP extensions while adding Swoole capabilities.
+</Info>
+
+## What is Swoole?
+
+Swoole is an asynchronous programming framework for PHP that provides:
+
+<CardGroup cols={2}>
+  <Card title="Coroutines" icon="diagram-project">
+    Lightweight concurrent execution without callback hell
+  </Card>
+  <Card title="Async I/O" icon="bolt">
+    Non-blocking I/O operations for high concurrency
+  </Card>
+  <Card title="Built-in Servers" icon="server">
+    HTTP, WebSocket, TCP, and UDP servers out of the box
+  </Card>
+  <Card title="Performance" icon="gauge-high">
+    Handle thousands of concurrent connections efficiently
+  </Card>
+</CardGroup>
+
+## Available Tags
+
+<Tabs>
+  <Tab title="PHP 8.4">
+    - `namoshek/php-mssql:8.4-cli-alpine-swoole`
+    - `namoshek/php-mssql:8.4-fpm-alpine-swoole`
+  </Tab>
+  <Tab title="PHP 8.3">
+    - `namoshek/php-mssql:8.3-cli-alpine-swoole`
+    - `namoshek/php-mssql:8.3-fpm-alpine-swoole`
+  </Tab>
+  <Tab title="PHP 8.2">
+    - `namoshek/php-mssql:8.2-cli-alpine-swoole`
+    - `namoshek/php-mssql:8.2-fpm-alpine-swoole`
+  </Tab>
+  <Tab title="PHP 8.1">
+    - `namoshek/php-mssql:8.1-cli-alpine-swoole`
+    - `namoshek/php-mssql:8.1-fpm-alpine-swoole`
+  </Tab>
+</Tabs>
+
+## What's Included
+
+Swoole images include everything from Alpine base images plus:
+
+### Swoole Extension
+
+The Swoole PHP extension is added on top of the base Alpine image:
+
+<CodeGroup>
+
+```dockerfile Build Process
+FROM namoshek/php-mssql:8.4-cli-alpine
+
+# Install the Swoole PHP extension
+RUN chmod uga+x /usr/bin/install-php-extensions \
+    && sync \
+    && install-php-extensions swoole
+```
+
+```bash Verify Installation
+# Check Swoole version
+php --ri swoole
+```
+
+</CodeGroup>
+
+### Complete Feature Set
+
+All features from Alpine images are included:
+
+<Tabs>
+  <Tab title="SQL Server">
+    - Microsoft ODBC Driver 18
+    - mssql-tools18 (sqlcmd, bcp)
+    - sqlsrv and pdo_sqlsrv extensions
+  </Tab>
+  <Tab title="PHP Extensions">
+    - bcmath, ds, exif, gd
+    - intl, opcache, pcntl, pcov
+    - redis, sqlsrv, pdo_sqlsrv, zip
+    - **swoole** (added)
+  </Tab>
+  <Tab title="Dev Tools (CLI)">
+    - Composer
+    - Node.js and npm
+    - Yarn
+  </Tab>
+  <Tab title="System Tools">
+    - bash, gnupg, less
+    - nano, su-exec, unzip
+  </Tab>
+</Tabs>
+
+## When to Use Swoole
+
+<CardGroup cols={2}>
+  <Card title="Real-time Applications" icon="bolt">
+    WebSocket servers, chat applications, live dashboards
+  </Card>
+  <Card title="Microservices" icon="cubes">
+    High-performance API gateways and service meshes
+  </Card>
+  <Card title="Long-running Processes" icon="infinity">
+    Background workers, queue processors, schedulers
+  </Card>
+  <Card title="High Concurrency" icon="users">
+    Applications handling thousands of simultaneous connections
+  </Card>
+</CardGroup>
+
+<Warning>
+**Not Recommended For**: Traditional PHP-FPM workflows, simple web applications, or projects where you don't need async capabilities. Standard Alpine or Debian images are simpler for most use cases.
+</Warning>
+
+## Swoole Capabilities
+
+### HTTP Server
+
+Create a high-performance HTTP server without nginx or Apache:
+
+```php
+<?php
+$http = new Swoole\Http\Server("0.0.0.0", 9501);
+
+$http->on("start", function ($server) {
+    echo "Swoole HTTP server started at http://127.0.0.1:9501\n";
+});
+
+$http->on("request", function ($request, $response) {
+    // SQL Server connection with PDO
+    $pdo = new PDO(
+        "sqlsrv:server=sql-server;Database=mydb",
+        "username",
+        "password"
+    );
+    
+    $stmt = $pdo->query("SELECT TOP 10 * FROM users");
+    $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $response->header("Content-Type", "application/json");
+    $response->end(json_encode($users));
+});
+
+$http->start();
+```
+
+### WebSocket Server
+
+Build real-time WebSocket applications:
+
+```php
+<?php
+$server = new Swoole\WebSocket\Server("0.0.0.0", 9502);
+
+$server->on('open', function($server, $request) {
+    echo "Connection opened: {$request->fd}\n";
+});
+
+$server->on('message', function($server, $frame) {
+    echo "Received: {$frame->data}\n";
+    $server->push($frame->fd, "Server: {$frame->data}");
+});
+
+$server->on('close', function($server, $fd) {
+    echo "Connection closed: {$fd}\n";
+});
+
+$server->start();
+```
+
+### Coroutines
+
+Handle concurrent operations elegantly:
+
+```php
+<?php
+use Swoole\Coroutine;
+
+Co\run(function() {
+    // Multiple SQL queries in parallel
+    $results = [];
+    
+    $wg = new Swoole\Coroutine\WaitGroup();
+    
+    // Query 1
+    $wg->add();
+    Coroutine::create(function() use (&$results, $wg) {
+        $pdo = new PDO("sqlsrv:server=sql-server;Database=mydb", "user", "pass");
+        $results['users'] = $pdo->query("SELECT * FROM users")->fetchAll();
+        $wg->done();
+    });
+    
+    // Query 2
+    $wg->add();
+    Coroutine::create(function() use (&$results, $wg) {
+        $pdo = new PDO("sqlsrv:server=sql-server;Database=mydb", "user", "pass");
+        $results['products'] = $pdo->query("SELECT * FROM products")->fetchAll();
+        $wg->done();
+    });
+    
+    $wg->wait();
+    
+    var_dump($results);
+});
+```
+
+## Usage Examples
+
+<CodeGroup>
+
+```bash Docker Run
+docker run -it -p 9501:9501 namoshek/php-mssql:8.4-cli-alpine-swoole php server.php
+```
+
+```yaml Docker Compose - HTTP Server
+services:
+  swoole:
+    image: namoshek/php-mssql:8.4-cli-alpine-swoole
+    ports:
+      - "9501:9501"
+    volumes:
+      - ./app:/var/www
+    command: php /var/www/server.php
+    environment:
+      - DB_HOST=mssql
+      - DB_DATABASE=myapp
+    depends_on:
+      - mssql
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+    ports:
+      - "1433:1433"
+```
+
+```yaml Docker Compose - WebSocket
+services:
+  websocket:
+    image: namoshek/php-mssql:8.4-cli-alpine-swoole
+    ports:
+      - "9502:9502"
+    volumes:
+      - ./app:/var/www
+    command: php /var/www/websocket-server.php
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./public:/var/www/public
+    depends_on:
+      - websocket
+```
+
+```dockerfile Custom Swoole Image
+FROM namoshek/php-mssql:8.4-cli-alpine-swoole
+
+# Install additional dependencies
+RUN apk add --no-cache git
+
+# Copy application
+COPY . /var/www
+
+# Install Composer dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+# Expose Swoole server port
+EXPOSE 9501
+
+# Run Swoole server
+CMD ["php", "/var/www/server.php"]
+```
+
+</CodeGroup>
+
+## Laravel Octane Support
+
+Swoole images work perfectly with Laravel Octane:
+
+```yaml
+services:
+  octane:
+    image: namoshek/php-mssql:8.4-cli-alpine-swoole
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./laravel-app:/var/www
+    working_dir: /var/www
+    command: php artisan octane:start --server=swoole --host=0.0.0.0 --port=8000
+    environment:
+      - DB_CONNECTION=sqlsrv
+      - DB_HOST=mssql
+      - DB_DATABASE=laravel
+      - DB_USERNAME=sa
+      - DB_PASSWORD=YourStrong@Passw0rd
+    depends_on:
+      - mssql
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+```
+
+## Image Size
+
+Swoole adds minimal overhead to Alpine images:
+
+- **CLI images**: ~270-320 MB (+~20MB vs Alpine)
+- **FPM images**: ~220-270 MB (+~20MB vs Alpine)
+
+<Tip>
+Swoole's performance benefits far outweigh the small size increase for async workloads.
+</Tip>
+
+## Performance Comparison
+
+<CardGroup cols={2}>
+  <Card title="Traditional PHP-FPM" icon="turtle">
+    ~1,000 requests/second with 100 concurrent connections
+  </Card>
+  <Card title="Swoole HTTP Server" icon="rabbit">
+    ~10,000+ requests/second with 1,000+ concurrent connections
+  </Card>
+</CardGroup>
+
+<Note>
+Actual performance depends on your application logic, database queries, and server hardware. Swoole excels at I/O-bound operations.
+</Note>
+
+## Important Considerations
+
+<AccordionGroup>
+  <Accordion title="Process Persistence" icon="memory">
+    Unlike PHP-FPM, Swoole keeps your application in memory between requests. This means:
+    - Faster response times (no bootstrap overhead)
+    - Shared state possible (use with caution)
+    - Memory leaks can accumulate
+    - Database connections should be managed carefully
+  </Accordion>
+
+  <Accordion title="Code Reloading" icon="rotate">
+    Changes to PHP files don't take effect automatically. You must:
+    - Restart the Swoole server to see changes
+    - Use hot-reload tools in development
+    - Implement proper deployment strategies
+  </Accordion>
+
+  <Accordion title="Global State" icon="globe">
+    Global variables persist between requests:
+    - Be careful with static variables
+    - Reset state as needed
+    - Use Swoole's context API for request-specific data
+  </Accordion>
+
+  <Accordion title="Compatibility" icon="check">
+    Not all PHP libraries work well with Swoole:
+    - Most pure PHP code works fine
+    - Libraries using blocking I/O may reduce performance
+    - Frameworks like Laravel Octane are designed for Swoole
+    - Test thoroughly with your dependencies
+  </Accordion>
+</AccordionGroup>
+
+## Debugging and Monitoring
+
+```php
+<?php
+// Enable Swoole statistics
+$server = new Swoole\Http\Server("0.0.0.0", 9501);
+
+$server->set([
+    'worker_num' => 4,
+    'daemonize' => false,  // Set true for production
+    'log_file' => '/var/log/swoole.log',
+    'log_level' => SWOOLE_LOG_INFO,
+]);
+
+// Monitor endpoint
+$server->on('request', function($request, $response) use ($server) {
+    if ($request->server['request_uri'] === '/stats') {
+        $stats = $server->stats();
+        $response->header('Content-Type', 'application/json');
+        $response->end(json_encode($stats, JSON_PRETTY_PRINT));
+        return;
+    }
+    
+    // Your application logic
+    $response->end("Hello World");
+});
+
+$server->start();
+```
+
+## Learning Resources
+
+<CardGroup cols={2}>
+  <Card title="Swoole Documentation" icon="book" href="https://www.swoole.com/docs">
+    Official Swoole documentation and guides
+  </Card>
+  <Card title="Laravel Octane" icon="laravel" href="https://laravel.com/docs/octane">
+    Laravel's first-party Swoole integration
+  </Card>
+  <Card title="Hyperf Framework" icon="rocket" href="https://hyperf.io">
+    Modern PHP framework built for Swoole
+  </Card>
+  <Card title="Swoole GitHub" icon="github" href="https://github.com/swoole/swoole-src">
+    Source code and examples
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Alpine Images" icon="mountain" href="/images/alpine">
+    Learn about the base Alpine images
+  </Card>
+  <Card title="SQL Server Connection" icon="database" href="/usage/mssql-connection">
+    Connect to SQL Server with Swoole
+  </Card>
+  <Card title="PHP Configuration" icon="gear" href="/usage/php-configuration">
+    Configure PHP and Swoole settings
+  </Card>
+  <Card title="Examples" icon="code" href="/usage/running-containers">
+    More container usage examples
+  </Card>
+</CardGroup>

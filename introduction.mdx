@@ -1,0 +1,139 @@
+---
+title: Introduction
+description: Docker images with PHP and Microsoft SQL Server drivers pre-installed
+---
+
+## What is docker-php-mssql?
+
+docker-php-mssql provides production-ready Docker images that combine the official PHP Docker images with Microsoft SQL Server drivers. These images eliminate the complex setup process of installing and configuring the ODBC drivers and PHP extensions needed to connect PHP applications to Microsoft SQL Server databases.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Pre-configured SQL Server Drivers" icon="database">
+    Microsoft ODBC Driver 18 with sqlsrv and pdo_sqlsrv extensions already installed and configured
+  </Card>
+  <Card title="Multiple PHP Versions" icon="code">
+    Support for PHP 8.1, 8.2, 8.3, and 8.4 with both CLI and FPM variants
+  </Card>
+  <Card title="Rich Extension Set" icon="puzzle-piece">
+    Includes commonly used extensions: bcmath, ds, exif, gd, intl, opcache, pcntl, redis, and zip
+  </Card>
+  <Card title="Development Tools" icon="terminal">
+    CLI images include Composer, Node.js, npm, and Yarn for complete development workflows
+  </Card>
+</CardGroup>
+
+## Architecture Variants
+
+### Alpine Linux
+Lightweight images based on Alpine Linux, ideal for production deployments where image size matters.
+
+```dockerfile
+FROM php:8.4-cli-alpine
+# Includes Microsoft ODBC Driver 18
+# Pre-installed sqlsrv and pdo_sqlsrv extensions
+```
+
+### Debian Bookworm
+Standard Debian-based images providing broader compatibility and familiar tooling.
+
+```dockerfile
+FROM php:8.4-cli
+# Debian Bookworm base
+# Microsoft ODBC Driver 18 from official Microsoft repositories
+```
+
+### Swoole Variants
+Specialized Alpine images with the Swoole PHP extension for high-performance async programming.
+
+## Image Types
+
+<AccordionGroup>
+  <Accordion title="CLI Images" icon="terminal">
+    Command-line interface images designed for:
+    - Running scripts and background jobs
+    - Development and testing
+    - CI/CD pipelines
+    - Laravel Artisan, Symfony Console applications
+
+    **Additional tools included:**
+    - Composer (latest stable)
+    - Node.js 22.x
+    - npm and Yarn
+    - nano text editor
+    - pcov for code coverage
+  </Accordion>
+
+  <Accordion title="FPM Images" icon="server">
+    FastCGI Process Manager images optimized for:
+    - Production web applications
+    - Integration with Nginx or Apache
+    - High-performance web serving
+    - Containerized microservices
+
+    **Optimized for production:**
+    - Minimal tooling footprint
+    - Efficient process management
+    - Ready for orchestration platforms
+  </Accordion>
+</AccordionGroup>
+
+## Available PHP Extensions
+
+All images include these pre-installed and configured extensions:
+
+| Extension | Purpose |
+|-----------|--------|
+| **sqlsrv** | Native Microsoft SQL Server driver |
+| **pdo_sqlsrv** | PDO driver for SQL Server |
+| bcmath | Arbitrary precision mathematics |
+| ds | Efficient data structures |
+| exif | Image metadata reading |
+| gd | Image manipulation |
+| intl | Internationalization |
+| opcache | Performance optimization |
+| pcntl | Process control (CLI only) |
+| pcov | Code coverage (CLI only) |
+| redis | Redis client |
+| zip | Archive manipulation |
+
+## Supported Versions
+
+<Note>
+Images are automatically rebuilt and retagged weekly to include the latest upstream PHP updates and security patches.
+</Note>
+
+The project currently maintains images for:
+
+- **PHP 8.4** - Latest stable release
+- **PHP 8.3** - Current stable version
+- **PHP 8.2** - Active support
+- **PHP 8.1** - Security fixes only
+
+Each version is available in:
+- Alpine CLI and FPM variants
+- Debian CLI and FPM variants  
+- Alpine Swoole CLI and FPM variants (8.1-8.4)
+
+<Warning>
+PHP 7.3, 7.4, and 8.0 images are discontinued and no longer receive updates. These versions should not be used in production.
+</Warning>
+
+## Use Cases
+
+### Laravel Applications
+Perfect for Laravel applications that need to connect to SQL Server databases, with all required extensions and Composer pre-installed.
+
+### Symfony Projects
+Fully compatible with Symfony applications, including console commands and web applications.
+
+### Legacy System Integration
+Ideal for modernizing applications that need to integrate with existing SQL Server databases.
+
+### Microservices
+Lightweight Alpine images are perfect for containerized microservices architectures.
+
+## License
+
+The project is licensed under the [MIT License](https://github.com/Namoshek/docker-php-mssql/blob/master/LICENSE), making it free for both personal and commercial use.

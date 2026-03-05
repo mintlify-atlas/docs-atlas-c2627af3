@@ -1,0 +1,383 @@
+---
+title: "Alpine-based Images"
+description: "Lightweight Docker images built on Alpine Linux, optimized for production deployments with minimal size"
+---
+
+## Overview
+
+Alpine-based images are lightweight variants built on Alpine Linux, using musl libc instead of glibc. These images are optimized for production environments where image size and attack surface minimization are priorities.
+
+<Note>
+Alpine images are significantly smaller than Debian variants (~50MB vs ~200MB base) while maintaining the same PHP and SQL Server functionality.
+</Note>
+
+## Available Tags
+
+<Tabs>
+  <Tab title="PHP 8.4">
+    - `namoshek/php-mssql:8.4-cli-alpine`
+    - `namoshek/php-mssql:8.4-fpm-alpine`
+  </Tab>
+  <Tab title="PHP 8.3">
+    - `namoshek/php-mssql:8.3-cli-alpine`
+    - `namoshek/php-mssql:8.3-fpm-alpine`
+  </Tab>
+  <Tab title="PHP 8.2">
+    - `namoshek/php-mssql:8.2-cli-alpine`
+    - `namoshek/php-mssql:8.2-fpm-alpine`
+  </Tab>
+  <Tab title="PHP 8.1">
+    - `namoshek/php-mssql:8.1-cli-alpine`
+    - `namoshek/php-mssql:8.1-fpm-alpine`
+  </Tab>
+</Tabs>
+
+## What's Included
+
+### Base System
+
+Built on official PHP Alpine Docker images:
+
+<CodeGroup>
+
+```dockerfile CLI Base
+FROM php:8.4-cli-alpine
+```
+
+```dockerfile FPM Base
+FROM php:8.4-fpm-alpine
+```
+
+</CodeGroup>
+
+### Microsoft SQL Server Components
+
+All Alpine images include verified ODBC drivers and tools:
+
+- **msodbcsql18** - Microsoft ODBC Driver 18 for SQL Server (18.4.1.1)
+- **mssql-tools18** - Command-line tools including sqlcmd and bcp (18.4.1.1)
+
+<Info>
+Microsoft packages are downloaded directly and GPG-verified before installation for security.
+</Info>
+
+<CodeGroup>
+
+```dockerfile Installation with Verification
+# Install MS SQL Server prerequisites with GPG verification
+RUN curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/msodbcsql18_18.4.1.1-1_amd64.apk \
+    && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/mssql-tools18_18.4.1.1-1_amd64.apk \
+    && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/msodbcsql18_18.4.1.1-1_amd64.sig \
+    && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/mssql-tools18_18.4.1.1-1_amd64.sig \
+    && curl https://packages.microsoft.com/keys/microsoft.asc | gpg --import - \
+    && gpg --verify msodbcsql18_18.4.1.1-1_amd64.sig msodbcsql18_18.4.1.1-1_amd64.apk \
+    && gpg --verify mssql-tools18_18.4.1.1-1_amd64.sig mssql-tools18_18.4.1.1-1_amd64.apk \
+    && apk add --allow-untrusted msodbcsql18_18.4.1.1-1_amd64.apk mssql-tools18_18.4.1.1-1_amd64.apk \
+    && rm *.apk *.sig
+```
+
+</CodeGroup>
+
+### PHP Extensions
+
+Identical extension set to Debian images:
+
+<CardGroup cols={3}>
+  <Card title="bcmath" icon="calculator">
+    Arbitrary precision mathematics
+  </Card>
+  <Card title="ds" icon="sitemap">
+    Efficient data structures
+  </Card>
+  <Card title="exif" icon="image">
+    Read EXIF metadata from images
+  </Card>
+  <Card title="gd" icon="paintbrush">
+    Image processing library
+  </Card>
+  <Card title="intl" icon="globe">
+    Internationalization functions
+  </Card>
+  <Card title="opcache" icon="gauge-high">
+    Opcode caching for performance
+  </Card>
+  <Card title="pcntl" icon="microchip">
+    Process control functions
+  </Card>
+  <Card title="pcov" icon="chart-line">
+    Code coverage driver (CLI only)
+  </Card>
+  <Card title="pdo_sqlsrv" icon="database">
+    PDO driver for SQL Server
+  </Card>
+  <Card title="redis" icon="server">
+    Redis client extension
+  </Card>
+  <Card title="sqlsrv" icon="database">
+    Native SQL Server driver
+  </Card>
+  <Card title="zip" icon="file-zipper">
+    ZIP archive handling
+  </Card>
+</CardGroup>
+
+### Development Tools (CLI Images Only)
+
+CLI images include:
+
+<Tabs>
+  <Tab title="Composer">
+    ```bash
+    # Composer is pre-installed
+    composer --version
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```bash
+    # Node.js with npm
+    node --version
+    npm --version
+    ```
+  </Tab>
+  <Tab title="Yarn">
+    ```bash
+    # Yarn package manager
+    yarn --version
+    ```
+  </Tab>
+</Tabs>
+
+### Alpine System Utilities
+
+Minimal but essential utilities:
+
+- `bash` - Bourne Again Shell
+- `gnupg` - Package verification
+- `less` - File pager
+- `nano` - Text editor (CLI only)
+- `su-exec` - Execute commands as another user
+- `unzip` - Archive extraction
+
+## Complete Dockerfile
+
+<Tabs>
+  <Tab title="CLI">
+    ```dockerfile
+    FROM php:8.4-cli-alpine
+
+    ENV ACCEPT_EULA=Y
+
+    # Install prerequisites required for tools and extensions
+    RUN apk add --update bash gnupg less libpng-dev libzip-dev nano nodejs npm su-exec unzip
+
+    # Install yarn as global npm package
+    RUN npm install -g yarn
+
+    # Install prerequisites for the sqlsrv and pdo_sqlsrv PHP extensions
+    RUN curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/msodbcsql18_18.4.1.1-1_amd64.apk \
+        && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/mssql-tools18_18.4.1.1-1_amd64.apk \
+        && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/msodbcsql18_18.4.1.1-1_amd64.sig \
+        && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/mssql-tools18_18.4.1.1-1_amd64.sig \
+        && curl https://packages.microsoft.com/keys/microsoft.asc | gpg --import - \
+        && gpg --verify msodbcsql18_18.4.1.1-1_amd64.sig msodbcsql18_18.4.1.1-1_amd64.apk \
+        && gpg --verify mssql-tools18_18.4.1.1-1_amd64.sig mssql-tools18_18.4.1.1-1_amd64.apk \
+        && apk add --allow-untrusted msodbcsql18_18.4.1.1-1_amd64.apk mssql-tools18_18.4.1.1-1_amd64.apk \
+        && rm *.apk *.sig
+
+    # Retrieve the script used to install PHP extensions
+    COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/bin/install-php-extensions
+
+    # Install required PHP extensions
+    RUN chmod uga+x /usr/bin/install-php-extensions \
+        && sync \
+        && install-php-extensions bcmath ds exif gd intl opcache pcntl pcov pdo_sqlsrv redis sqlsrv zip
+
+    # Download composer and mark it as executable
+    RUN curl -o /usr/local/bin/composer https://getcomposer.org/composer-stable.phar \
+        && chmod +x /usr/local/bin/composer
+
+    # Set the working directory
+    WORKDIR /var/www
+    ```
+  </Tab>
+  <Tab title="FPM">
+    ```dockerfile
+    FROM php:8.4-fpm-alpine
+
+    ENV ACCEPT_EULA=Y
+
+    # Install prerequisites required for tools and extensions
+    RUN apk add --update bash gnupg less libpng-dev libzip-dev su-exec unzip
+
+    # Install prerequisites for the sqlsrv and pdo_sqlsrv PHP extensions
+    RUN curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/msodbcsql18_18.4.1.1-1_amd64.apk \
+        && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/mssql-tools18_18.4.1.1-1_amd64.apk \
+        && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/msodbcsql18_18.4.1.1-1_amd64.sig \
+        && curl -O https://download.microsoft.com/download/7/6/d/76de322a-d860-4894-9945-f0cc5d6a45f8/mssql-tools18_18.4.1.1-1_amd64.sig \
+        && curl https://packages.microsoft.com/keys/microsoft.asc | gpg --import - \
+        && gpg --verify msodbcsql18_18.4.1.1-1_amd64.sig msodbcsql18_18.4.1.1-1_amd64.apk \
+        && gpg --verify mssql-tools18_18.4.1.1-1_amd64.sig mssql-tools18_18.4.1.1-1_amd64.apk \
+        && apk add --allow-untrusted msodbcsql18_18.4.1.1-1_amd64.apk mssql-tools18_18.4.1.1-1_amd64.apk \
+        && rm *.apk *.sig
+
+    # Retrieve the script used to install PHP extensions
+    COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/bin/install-php-extensions
+
+    # Install required PHP extensions
+    RUN chmod uga+x /usr/bin/install-php-extensions \
+        && sync \
+        && install-php-extensions bcmath ds exif gd intl opcache pcntl pdo_sqlsrv redis sqlsrv zip
+
+    # Set the working directory
+    WORKDIR /var/www
+    ```
+  </Tab>
+</Tabs>
+
+## Image Size
+
+Alpine images are significantly smaller:
+
+- **CLI images**: ~250-300 MB
+- **FPM images**: ~200-250 MB
+
+<Tip>
+Alpine images are 50-60% smaller than Debian equivalents, resulting in faster pulls and reduced storage costs.
+</Tip>
+
+## When to Use Alpine Images
+
+<CardGroup cols={2}>
+  <Card title="Production" icon="server">
+    Ideal for production deployments prioritizing minimal size and attack surface
+  </Card>
+  <Card title="Container Orchestration" icon="cubes">
+    Perfect for Kubernetes, Docker Swarm, and other orchestration platforms
+  </Card>
+  <Card title="CI/CD" icon="infinity">
+    Faster build and deployment times due to smaller image size
+  </Card>
+  <Card title="Cost Optimization" icon="dollar-sign">
+    Reduced storage and bandwidth costs in cloud environments
+  </Card>
+</CardGroup>
+
+## Considerations
+
+<Warning>
+**musl vs glibc**: Alpine uses musl libc instead of glibc. While most PHP applications work perfectly, some binary extensions or compiled dependencies may have compatibility issues.
+</Warning>
+
+<Accordion title="Common Compatibility Issues">
+  - Binary extensions compiled for glibc may not work
+  - Some NodeJS native modules might need recompilation
+  - DNS resolution behavior differs slightly from glibc systems
+  - Certain C libraries may need Alpine-specific versions
+</Accordion>
+
+<Accordion title="Solutions">
+  - Most PHP packages work without modification
+  - Use Alpine-native packages when available
+  - Compile extensions from source if needed
+  - Test thoroughly before deploying to production
+  - Switch to [Debian images](/images/debian) if compatibility issues arise
+</Accordion>
+
+## Usage Examples
+
+<CodeGroup>
+
+```bash Docker Run
+docker run -it namoshek/php-mssql:8.4-cli-alpine php -v
+```
+
+```yaml Docker Compose
+services:
+  app:
+    image: namoshek/php-mssql:8.4-fpm-alpine
+    volumes:
+      - ./app:/var/www
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./app:/var/www
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - app
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+```
+
+```dockerfile Custom Dockerfile
+FROM namoshek/php-mssql:8.4-cli-alpine
+
+# Install additional Alpine packages
+RUN apk add --no-cache \
+    git \
+    vim
+
+# Copy your application
+COPY . /var/www
+
+# Install dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+CMD ["php", "artisan", "serve", "--host=0.0.0.0"]
+```
+
+</CodeGroup>
+
+## Comparison with Debian
+
+| Feature | Alpine | Debian |
+|---------|--------|--------|
+| Base size | Smaller (~50MB) | Larger (~200MB) |
+| Total size | ~250-300MB | ~500-700MB |
+| C library | musl libc | glibc |
+| Package manager | apk | apt |
+| Compatibility | Good | Excellent |
+| Security | Smaller attack surface | More audit tooling |
+| Best for | Production, size-critical | Development, compatibility |
+
+## Performance Characteristics
+
+<CardGroup cols={2}>
+  <Card title="Startup Time" icon="rocket">
+    Faster container startup due to smaller image size
+  </Card>
+  <Card title="Memory Usage" icon="memory">
+    Lower baseline memory footprint
+  </Card>
+  <Card title="Network Transfer" icon="download">
+    Reduced bandwidth usage for image pulls
+  </Card>
+  <Card title="Runtime Performance" icon="gauge-high">
+    Equivalent PHP performance to Debian images
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Debian Images" icon="linux" href="/images/debian">
+    Explore full-featured Debian variants
+  </Card>
+  <Card title="Swoole Images" icon="bolt" href="/images/swoole">
+    Add high-performance async capabilities
+  </Card>
+  <Card title="Configuration" icon="gear" href="/usage/php-configuration">
+    Configure PHP settings and extensions
+  </Card>
+  <Card title="MS SQL Connection" icon="database" href="/usage/mssql-connection">
+    Connect to SQL Server databases
+  </Card>
+</CardGroup>

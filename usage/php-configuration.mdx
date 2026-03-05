@@ -1,0 +1,448 @@
+---
+title: PHP Configuration
+description: Learn how to configure PHP settings in docker-php-mssql containers
+---
+
+The docker-php-mssql images are based on the official PHP Docker images, which means you can customize PHP configuration using the same methods.
+
+## Configuration Methods
+
+### Using Custom php.ini
+
+<Steps>
+  <Step title="Create Custom Configuration">
+    Create a custom PHP configuration file, e.g., `custom.ini`:
+
+    ```ini
+    ; Memory settings
+    memory_limit = 256M
+    
+    ; Upload settings
+    upload_max_filesize = 50M
+    post_max_size = 50M
+    
+    ; Execution settings
+    max_execution_time = 300
+    max_input_time = 300
+    
+    ; Error reporting
+    display_errors = Off
+    log_errors = On
+    error_log = /var/log/php_errors.log
+    
+    ; Timezone
+    date.timezone = UTC
+    ```
+  </Step>
+
+  <Step title="Mount Configuration">
+    Mount the custom configuration file to `/usr/local/etc/php/conf.d/`:
+
+    ```bash
+    docker run --rm \
+      -v $(pwd)/custom.ini:/usr/local/etc/php/conf.d/custom.ini \
+      namoshek/php-mssql:8.4-cli \
+      php -i | grep memory_limit
+    ```
+  </Step>
+</Steps>
+
+### Using docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  app:
+    image: namoshek/php-mssql:8.4-cli
+    volumes:
+      - ./:/app
+      - ./config/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    working_dir: /app
+```
+
+### Using Environment Variables
+
+Set PHP configuration via environment variables:
+
+```yaml
+services:
+  app:
+    image: namoshek/php-mssql:8.4-cli
+    environment:
+      PHP_MEMORY_LIMIT: 256M
+      PHP_UPLOAD_MAX_FILESIZE: 50M
+      PHP_POST_MAX_SIZE: 50M
+```
+
+<Note>
+  Environment variable method requires a custom entrypoint script to parse and apply the settings.
+</Note>
+
+## Pre-installed Extensions
+
+All docker-php-mssql images come with the following extensions pre-installed:
+
+<CardGroup cols={2}>
+  <Card title="SQL Server Extensions" icon="database">
+    - **sqlsrv** - Microsoft SQL Server driver
+    - **pdo_sqlsrv** - PDO driver for SQL Server
+  </Card>
+
+  <Card title="Common Extensions" icon="puzzle-piece">
+    - **bcmath** - Arbitrary precision mathematics
+    - **ds** - Data structures
+    - **exif** - Image metadata
+    - **gd** - Image processing
+    - **intl** - Internationalization
+    - **opcache** - Opcode cache
+    - **pcntl** - Process control
+    - **redis** - Redis client
+    - **zip** - ZIP archive support
+  </Card>
+</CardGroup>
+
+### CLI-Only Extensions
+
+The CLI images also include:
+
+- **pcov** - Code coverage tool (lightweight alternative to Xdebug)
+
+### Verify Installed Extensions
+
+```bash
+docker run --rm namoshek/php-mssql:8.4-cli php -m
+```
+
+Check specific extension version:
+
+```bash
+docker run --rm namoshek/php-mssql:8.4-cli php -r "echo phpversion('sqlsrv');"
+```
+
+## OPcache Configuration
+
+OPcache is pre-installed. Configure it for optimal performance:
+
+### Development Settings
+
+```ini
+; Development - Reload files on every request
+opcache.enable=1
+opcache.revalidate_freq=0
+opcache.validate_timestamps=1
+opcache.max_accelerated_files=10000
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=8
+opcache.fast_shutdown=1
+```
+
+### Production Settings
+
+```ini
+; Production - Cache files and don't revalidate
+opcache.enable=1
+opcache.revalidate_freq=0
+opcache.validate_timestamps=0
+opcache.max_accelerated_files=20000
+opcache.memory_consumption=256
+opcache.interned_strings_buffer=16
+opcache.fast_shutdown=1
+```
+
+<Accordion title="Complete OPcache Configuration Example">
+  ```ini
+  ; OPcache Configuration
+  opcache.enable=1
+  opcache.enable_cli=0
+  opcache.memory_consumption=256
+  opcache.interned_strings_buffer=16
+  opcache.max_accelerated_files=20000
+  opcache.max_wasted_percentage=10
+  opcache.validate_timestamps=0
+  opcache.revalidate_freq=0
+  opcache.fast_shutdown=1
+  
+  ; Optimization settings
+  opcache.save_comments=1
+  opcache.enable_file_override=0
+  opcache.optimization_level=0x7FFFFFFF
+  ```
+</Accordion>
+
+## PHP-FPM Configuration
+
+For FPM images, you may want to customize PHP-FPM pool settings:
+
+### Custom Pool Configuration
+
+Create `www.conf`:
+
+```ini
+[www]
+user = www-data
+group = www-data
+listen = 9000
+
+; Process management
+pm = dynamic
+pm.max_children = 50
+pm.start_servers = 5
+pm.min_spare_servers = 5
+pm.max_spare_servers = 35
+pm.max_requests = 500
+
+; Status page
+pm.status_path = /status
+ping.path = /ping
+
+; Logging
+access.log = /proc/self/fd/2
+catch_workers_output = yes
+```
+
+Mount it in your container:
+
+```yaml
+services:
+  php:
+    image: namoshek/php-mssql:8.4-fpm
+    volumes:
+      - ./config/php-fpm/www.conf:/usr/local/etc/php-fpm.d/www.conf
+```
+
+### FPM Environment Variables
+
+Pass environment variables to FPM workers:
+
+```ini
+[www]
+; Clear environment
+clear_env = no
+
+; Or pass specific variables
+env[HOSTNAME] = $HOSTNAME
+env[PATH] = /usr/local/bin:/usr/bin:/bin
+env[TMP] = /tmp
+env[TMPDIR] = /tmp
+env[TEMP] = /tmp
+```
+
+## SQL Server Extension Configuration
+
+### sqlsrv Extension Settings
+
+Configure sqlsrv extension options:
+
+```ini
+; SQL Server extension configuration
+sqlsrv.ClientBufferMaxKBSize = 10240
+sqlsrv.LogSeverity = 0
+sqlsrv.LogSubsystems = 0
+sqlsrv.WarningsReturnAsErrors = 1
+```
+
+### Connection Timeout Settings
+
+```php
+<?php
+ini_set('default_socket_timeout', 60);
+ini_set('mssql.timeout', 60);
+```
+
+## Development vs Production
+
+### Development Configuration
+
+<Tabs>
+  <Tab title="dev.ini">
+    ```ini
+    ; Display errors for debugging
+    display_errors = On
+    display_startup_errors = On
+    error_reporting = E_ALL
+    
+    ; Logging
+    log_errors = On
+    error_log = /var/log/php_errors.log
+    
+    ; Memory and execution
+    memory_limit = 512M
+    max_execution_time = 0
+    
+    ; OPcache - revalidate files
+    opcache.enable=1
+    opcache.revalidate_freq=0
+    opcache.validate_timestamps=1
+    
+    ; Debugging
+    assert.active = On
+    ```
+  </Tab>
+  
+  <Tab title="docker-compose.yml">
+    ```yaml
+    services:
+      app:
+        image: namoshek/php-mssql:8.4-cli
+        volumes:
+          - ./config/php/dev.ini:/usr/local/etc/php/conf.d/custom.ini
+        environment:
+          APP_ENV: development
+    ```
+  </Tab>
+</Tabs>
+
+### Production Configuration
+
+<Tabs>
+  <Tab title="prod.ini">
+    ```ini
+    ; Hide errors from output
+    display_errors = Off
+    display_startup_errors = Off
+    error_reporting = E_ALL & ~E_DEPRECATED & ~E_STRICT
+    
+    ; Logging
+    log_errors = On
+    error_log = /var/log/php_errors.log
+    
+    ; Memory and execution
+    memory_limit = 256M
+    max_execution_time = 300
+    
+    ; OPcache - maximum performance
+    opcache.enable=1
+    opcache.validate_timestamps=0
+    opcache.revalidate_freq=0
+    opcache.memory_consumption=256
+    opcache.max_accelerated_files=20000
+    
+    ; Security
+    expose_php = Off
+    
+    ; Session
+    session.cookie_httponly = 1
+    session.cookie_secure = 1
+    session.use_strict_mode = 1
+    ```
+  </Tab>
+  
+  <Tab title="docker-compose.yml">
+    ```yaml
+    services:
+      app:
+        image: namoshek/php-mssql:8.4-fpm
+        volumes:
+          - ./config/php/prod.ini:/usr/local/etc/php/conf.d/custom.ini
+        environment:
+          APP_ENV: production
+        deploy:
+          resources:
+            limits:
+              memory: 512M
+    ```
+  </Tab>
+</Tabs>
+
+## Verifying Configuration
+
+### Check Loaded Configuration
+
+```bash
+# View all PHP configuration
+docker run --rm namoshek/php-mssql:8.4-cli php -i
+
+# Check specific setting
+docker run --rm namoshek/php-mssql:8.4-cli php -r "echo ini_get('memory_limit');"
+
+# List configuration files
+docker run --rm namoshek/php-mssql:8.4-cli php --ini
+```
+
+### Using phpinfo()
+
+Create a `phpinfo.php` file:
+
+```php
+<?php
+phpinfo();
+```
+
+Run it:
+
+```bash
+docker run --rm -v $(pwd)/phpinfo.php:/app/phpinfo.php namoshek/php-mssql:8.4-cli php /app/phpinfo.php
+```
+
+## Common Configuration Examples
+
+### Increase Upload Limits
+
+```ini
+upload_max_filesize = 100M
+post_max_size = 100M
+memory_limit = 256M
+```
+
+### Configure Error Logging
+
+```ini
+log_errors = On
+error_log = /var/log/php_errors.log
+error_reporting = E_ALL
+display_errors = Off
+```
+
+### Set Timezone
+
+```ini
+date.timezone = America/New_York
+```
+
+### Session Configuration
+
+```ini
+session.save_handler = redis
+session.save_path = "tcp://redis:6379"
+session.gc_maxlifetime = 3600
+session.cookie_lifetime = 0
+session.cookie_secure = 1
+session.cookie_httponly = 1
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Configuration changes not taking effect">
+    1. Ensure your custom ini file is mounted to `/usr/local/etc/php/conf.d/`
+    2. Verify the file is readable: `docker run --rm namoshek/php-mssql:8.4-cli ls -la /usr/local/etc/php/conf.d/`
+    3. Restart the container after making changes
+    4. Check for syntax errors in your ini file
+  </Accordion>
+
+  <Accordion title="OPcache not working">
+    1. Verify OPcache is loaded: `docker run --rm namoshek/php-mssql:8.4-cli php -m | grep opcache`
+    2. Check OPcache status in phpinfo()
+    3. Ensure `opcache.enable=1` is set
+    4. For CLI, you may need `opcache.enable_cli=1`
+  </Accordion>
+
+  <Accordion title="Memory limit errors">
+    1. Increase `memory_limit` in your custom ini
+    2. For Docker, also set container memory limits
+    3. Monitor actual memory usage: `docker stats`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="MSSQL Connection" icon="database" href="/usage/mssql-connection">
+    Learn how to connect to SQL Server with your configured PHP
+  </Card>
+
+  <Card title="Running Containers" icon="play" href="/usage/running-containers">
+    Run containers with your custom configuration
+  </Card>
+</CardGroup>

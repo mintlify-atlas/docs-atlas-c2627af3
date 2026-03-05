@@ -1,0 +1,193 @@
+---
+title: PHP Extensions
+description: Complete list of PHP extensions included in the images
+---
+
+All docker-php-mssql images include a comprehensive set of PHP extensions for database connectivity, performance optimization, and common development tasks.
+
+## Microsoft SQL Server Extensions
+
+These extensions enable PHP to connect to Microsoft SQL Server databases.
+
+### sqlsrv
+
+**Available in:** All images
+
+The Microsoft Drivers for PHP for SQL Server extension. Provides a procedural API for accessing SQL Server.
+
+```php
+$conn = sqlsrv_connect($serverName, $connectionOptions);
+```
+
+### pdo_sqlsrv
+
+**Available in:** All images
+
+PDO driver for SQL Server. Enables SQL Server database access through PHP's PDO interface.
+
+```php
+$conn = new PDO("sqlsrv:server=$server;Database=$database", $user, $pass);
+```
+
+## Core PHP Extensions
+
+These extensions are included in all image variants (CLI, FPM, Alpine, and Swoole).
+
+### bcmath
+
+**Available in:** All images
+
+Binary Calculator - arbitrary precision mathematics. Essential for financial calculations.
+
+```php
+bcadd('1.0001', '2.0002', 4); // 3.0003
+```
+
+### ds
+
+**Available in:** All images
+
+Data Structures extension - efficient data structures for PHP including Vector, Deque, Map, Set, Stack, Queue, and PriorityQueue.
+
+```php
+$vector = new \Ds\Vector([1, 2, 3]);
+```
+
+### exif
+
+**Available in:** All images
+
+Enables reading of meta information from image files (JPEG, TIFF).
+
+```php
+$exif = exif_read_data('photo.jpg');
+```
+
+### gd
+
+**Available in:** All images
+
+Image processing library for creating and manipulating images.
+
+```php
+$image = imagecreatetruecolor(200, 200);
+```
+
+### intl
+
+**Available in:** All images
+
+Internationalization extension - provides collation, date/time formatting, number formatting, and more.
+
+```php
+$formatter = new NumberFormatter('en_US', NumberFormatter::CURRENCY);
+```
+
+### opcache
+
+**Available in:** All images
+
+Improves PHP performance by storing precompiled script bytecode in shared memory.
+
+<Note>
+Recommended for production environments to significantly improve performance.
+</Note>
+
+### pcntl
+
+**Available in:** All images
+
+Process Control support - enables process forking and signal handling.
+
+```php
+$pid = pcntl_fork();
+```
+
+### redis
+
+**Available in:** All images
+
+PHP extension for Redis - provides an API for communicating with Redis servers.
+
+```php
+$redis = new Redis();
+$redis->connect('127.0.0.1', 6379);
+```
+
+### zip
+
+**Available in:** All images
+
+Enables reading and writing of ZIP compressed archives.
+
+```php
+$zip = new ZipArchive();
+$zip->open('archive.zip');
+```
+
+## CLI-Only Extensions
+
+These extensions are only included in CLI image variants.
+
+### pcov
+
+**Available in:** CLI images only (`*-cli`, `*-cli-alpine`, `*-cli-alpine-swoole`)
+
+Code coverage driver for PHP. Faster alternative to Xdebug for code coverage.
+
+```php
+// Used with PHPUnit for test coverage reports
+pcov\start();
+// ... run code ...
+pcov\stop();
+```
+
+<Warning>
+pcov is designed for development/testing environments and should not be enabled in production.
+</Warning>
+
+## Swoole Extension
+
+### swoole
+
+**Available in:** Swoole images only (`*-swoole` variants)
+
+High-performance asynchronous programming framework for PHP. Enables coroutines, async I/O, and HTTP/WebSocket servers.
+
+```php
+$server = new Swoole\HTTP\Server('0.0.0.0', 9501);
+$server->on('request', function ($request, $response) {
+    $response->end('Hello Swoole');
+});
+$server->start();
+```
+
+<Tip>
+Swoole is ideal for building high-performance, scalable PHP applications with asynchronous capabilities.
+</Tip>
+
+## Extension Installation Method
+
+All PHP extensions are installed using the [mlocati/php-extension-installer](https://github.com/mlocati/docker-php-extension-installer) tool, which automatically handles dependencies and configuration.
+
+## Extension Versions
+
+Extension versions may vary between builds as they are pulled from the latest stable releases during image builds. Images are rebuilt weekly to include the latest updates.
+
+## Matrix by Image Type
+
+| Extension | CLI (Debian) | FPM (Debian) | CLI (Alpine) | FPM (Alpine) | Swoole variants |
+|-----------|--------------|--------------|--------------|--------------|----------------|
+| sqlsrv | ✓ | ✓ | ✓ | ✓ | ✓ |
+| pdo_sqlsrv | ✓ | ✓ | ✓ | ✓ | ✓ |
+| bcmath | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ds | ✓ | ✓ | ✓ | ✓ | ✓ |
+| exif | ✓ | ✓ | ✓ | ✓ | ✓ |
+| gd | ✓ | ✓ | ✓ | ✓ | ✓ |
+| intl | ✓ | ✓ | ✓ | ✓ | ✓ |
+| opcache | ✓ | ✓ | ✓ | ✓ | ✓ |
+| pcntl | ✓ | ✓ | ✓ | ✓ | ✓ |
+| redis | ✓ | ✓ | ✓ | ✓ | ✓ |
+| zip | ✓ | ✓ | ✓ | ✓ | ✓ |
+| pcov | ✓ | - | ✓ | - | ✓ (CLI only) |
+| swoole | - | - | - | - | ✓ |
